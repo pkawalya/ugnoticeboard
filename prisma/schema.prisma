@@ -1,0 +1,551 @@
+// Uganda Community Notice Board - Complete Database Schema
+// Turso-compatible (SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// FR-001: Administrative Hierarchy
+// ============================================================
+
+model Community {
+  id               String   @id @default(cuid())
+  name             String
+  adminType        String   // country, region, district, county, subcounty, parish, village
+  parentId         String?
+  ubosCode         String?
+  electoralCode    String?
+  latitude         Float?
+  longitude        Float?
+  populationEstimate Int?
+  geojsonBoundary  String?  // JSON string of GeoJSON boundary
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  parent           Community?        @relation("CommunityHierarchy", fields: [parentId], references: [id])
+  children         Community[]       @relation("CommunityHierarchy")
+  issues           Issue[]
+  broadcasts       Broadcast[]
+  subscriptions    Subscription[]
+  facilities       Facility[]
+  projects         Project[]
+  meetings         Meeting[]
+  polls            Poll[]
+  petitions        Petition[]
+  volunteerEvents  VolunteerEvent[]
+  officials        OfficialAssignment[]
+  departments      Department[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  communityId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  community   Community?        @relation(fields: [communityId], references: [id])
+  officials   OfficialAssignment[]
+  issues      Issue[]
+  subscriptions Subscription[]
+}
+
+// ============================================================
+// FR-002: User & Identity Management
+// ============================================================
+
+model User {
+  id                String   @id @default(cuid())
+  email             String?  @unique
+  phone             String?  @unique
+  name              String?
+  avatarUrl         String?
+  role              String   @default("citizen") // citizen, verified_citizen, moderator, lc1, lc2, lc3, lc4, lc5, district_official, ministry_official, super_admin
+  isVerified        Boolean  @default(false)
+  isOfficial        Boolean  @default(false)
+  trustScore        Float    @default(50.0)
+  isAnonymous       Boolean  @default(false)
+  preferredLanguage String   @default("en")
+  passwordHash      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  reportedIssues      Issue[]              @relation("ReportedIssues")
+  assignedIssues      Issue[]              @relation("AssignedIssues")
+  escalatedIssues     Issue[]              @relation("EscalatedIssues")
+  votes               Vote[]
+  petitionSignatures  PetitionSignature[]
+  petitions           Petition[]
+  subscriptions       Subscription[]
+  notifications       Notification[]
+  officialAssignments OfficialAssignment[]
+  broadcasts          Broadcast[]
+  comments            Comment[]
+  facilityReviews     FacilityReview[]
+  projectObservations ProjectObservation[]
+  auditLogs           AuditLog[]
+  reports             ModerationReport[]   @relation("ModerationReporter")
+  volunteerEvents     VolunteerEventParticipant[]
+  pollResponses       PollResponse[]
+  polls               Poll[]
+}
+
+model OfficialAssignment {
+  id            String   @id @default(cuid())
+  userId        String
+  communityId   String
+  departmentId  String?
+  authorityLevel String  // lc1, lc2, lc3, lc4, lc5, district, ministry
+  isVerified    Boolean  @default(false)
+  verifiedBy    String?
+  verifiedAt    DateTime?
+  escalationScope String? // village, parish, subcounty, county, district, region, national
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id])
+  community     Community @relation(fields: [communityId], references: [id])
+  department    Department? @relation(fields: [departmentId], references: [id])
+}
+
+// ============================================================
+// FR-003: Subscription & Notification System
+// ============================================================
+
+model Subscription {
+  id          String   @id @default(cuid())
+  userId      String
+  communityId String?
+  departmentId String?
+  topic       String?  // roads, water, health, corruption, security, environment, utilities, disaster
+  channel     String   @default("in_app") // in_app, email, sms, whatsapp, push
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User       @relation(fields: [userId], references: [id])
+  community   Community? @relation(fields: [communityId], references: [id])
+  department  Department? @relation(fields: [departmentId], references: [id])
+
+  @@unique([userId, communityId, departmentId, topic, channel])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String   // info, warning, emergency, broadcast, issue_update, escalation
+  category    String?  // emergency, health, security, infrastructure, civic, general
+  isRead      Boolean  @default(false)
+  actionUrl   String?
+  priority    String   @default("normal") // low, normal, high, critical
+  channel     String   @default("in_app") // in_app, email, sms, whatsapp, push
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+// ============================================================
+// FR-004: Authority Broadcast System
+// ============================================================
+
+model Broadcast {
+  id              String   @id @default(cuid())
+  title           String
+  content         String
+  category        String   // emergency, health, security, infrastructure, meeting, civic_campaign
+  priority        String   @default("normal") // low, normal, high, critical
+  status          String   @default("draft") // draft, scheduled, published, archived, expired
+  targetLevel     String   // national, region, district, county, subcounty, parish, village
+  communityId     String?
+  targetRadius    Float?   // km radius for geo-targeted broadcasts
+  channels        String   @default("in_app") // comma-separated: in_app,email,sms,whatsapp,push
+  publishedById   String
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  community       Community? @relation(fields: [communityId], references: [id])
+  publishedBy     User       @relation(fields: [publishedById], references: [id])
+}
+
+// ============================================================
+// FR-005: Civic Issue Reporting
+// ============================================================
+
+model Issue {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        String   // roads, water, health, corruption, security, environment, utilities, disaster
+  severity        String   @default("medium") // low, medium, high, critical
+  status          String   @default("submitted") // submitted, acknowledged, in_progress, escalated, resolved, closed, rejected
+  isAnonymous     Boolean  @default(false)
+  latitude        Float?
+  longitude       Float?
+  location        String?
+  communityId     String
+  departmentId    String?
+  reportedById    String?
+  assignedToId    String?
+  escalatedToId   String?
+  resolutionNote  String?
+  resolvedAt      DateTime?
+  deadlineAt      DateTime?
+  voteCount       Int      @default(0)
+  commentCount    Int      @default(0)
+  viewCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  community       Community   @relation(fields: [communityId], references: [id])
+  department      Department? @relation(fields: [departmentId], references: [id])
+  reportedBy      User?       @relation("ReportedIssues", fields: [reportedById], references: [id])
+  assignedTo      User?       @relation("AssignedIssues", fields: [assignedToId], references: [id])
+  escalatedTo     User?       @relation("EscalatedIssues", fields: [escalatedToId], references: [id])
+  evidence        Evidence[]
+  comments        Comment[]
+  votes           Vote[]
+  statusHistory   StatusHistory[]
+  escalationRecords EscalationRecord[]
+}
+
+model Evidence {
+  id          String   @id @default(cuid())
+  issueId     String
+  type        String   // photo, video, audio, document
+  url         String
+  caption     String?
+  uploadedAt  DateTime @default(now())
+
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  issueId     String
+  userId      String?
+  content     String
+  isOfficial  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model StatusHistory {
+  id          String   @id @default(cuid())
+  issueId     String
+  fromStatus  String?
+  toStatus    String
+  changedById String?
+  note        String?
+  changedAt   DateTime @default(now())
+
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// FR-006: Automated Routing & Escalation
+// ============================================================
+
+model EscalationRecord {
+  id              String   @id @default(cuid())
+  issueId         String
+  fromLevel       String
+  toLevel         String
+  reason          String   // overdue, unresolved, severity_increase, vote_threshold
+  fromUserId      String?
+  toUserId        String?
+  createdAt       DateTime @default(now())
+
+  issue           Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+}
+
+model EscalationRule {
+  id              String   @id @default(cuid())
+  category        String
+  fromLevel       String
+  toLevel         String
+  triggerType     String   // time_overdue, vote_threshold, severity_increase
+  triggerValue    Int      // hours for time, count for votes/thresholds
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============================================================
+// FR-007: Community Engagement
+// ============================================================
+
+model Vote {
+  id          String   @id @default(cuid())
+  userId      String
+  issueId     String?
+  direction   String   // up, down
+  createdAt   DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id])
+  issue       Issue?    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, issueId])
+}
+
+model Petition {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  targetSignatureCount Int
+  communityId   String
+  createdById   String
+  status        String   @default("active") // active, submitted, responded, closed
+  officialResponse String?
+  respondedAt   DateTime?
+  closesAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  community     Community           @relation(fields: [communityId], references: [id])
+  createdBy     User                @relation(fields: [createdById], references: [id])
+  signatures    PetitionSignature[]
+}
+
+model PetitionSignature {
+  id          String   @id @default(cuid())
+  petitionId  String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  petition    Petition  @relation(fields: [petitionId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, petitionId])
+}
+
+model Poll {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  communityId   String
+  createdById   String
+  status        String   @default("draft") // draft, active, closed
+  opensAt       DateTime?
+  closesAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  community     Community   @relation(fields: [communityId], references: [id])
+  createdBy     User        @relation(fields: [createdById], references: [id])
+  options       PollOption[]
+}
+
+model PollOption {
+  id          String   @id @default(cuid())
+  pollId      String
+  text        String
+  voteCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  poll        Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  responses   PollResponse[]
+}
+
+model PollResponse {
+  id          String   @id @default(cuid())
+  pollOptionId String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  pollOption  PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, pollOptionId])
+}
+
+// ============================================================
+// FR-008: Public Projects & Budget Transparency
+// ============================================================
+
+model Project {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  category        String   // infrastructure, health, education, water, agriculture
+  status          String   @default("planned") // planned, in_progress, completed, stalled
+  communityId     String
+  budgetAllocated Float    @default(0)
+  budgetSpent     Float    @default(0)
+  startDate       DateTime?
+  endDate         DateTime?
+  progressPercent Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  community       Community           @relation(fields: [communityId], references: [id])
+  milestones      ProjectMilestone[]
+  observations    ProjectObservation[]
+}
+
+model ProjectMilestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  status      String   @default("pending") // pending, in_progress, completed, overdue
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectObservation {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  content     String
+  evidenceUrl String?
+  createdAt   DateTime @default(now())
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+// ============================================================
+// FR-009: Public Facility Registry
+// ============================================================
+
+model Facility {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // school, hospital, police_station, water_point, road, market
+  category        String?
+  communityId     String
+  latitude        Float?
+  longitude       Float?
+  condition       String   @default("fair") // excellent, good, fair, poor, non_functional
+  capacity        Int?
+  isOperational   Boolean  @default(true)
+  services        String?  // comma-separated list of services
+  contactInfo     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  community       Community         @relation(fields: [communityId], references: [id])
+  reviews         FacilityReview[]
+}
+
+model FacilityReview {
+  id          String   @id @default(cuid())
+  facilityId  String
+  userId      String
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  facility    Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+// ============================================================
+// FR-014: Public Meetings & Civic Participation
+// ============================================================
+
+model Meeting {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  communityId     String
+  meetingDate     DateTime
+  location        String?
+  agenda          String?
+  resolutions     String?
+  status          String   @default("scheduled") // scheduled, in_progress, completed, cancelled
+  attendanceCount Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  community       Community  @relation(fields: [communityId], references: [id])
+}
+
+// ============================================================
+// Volunteer Coordination
+// ============================================================
+
+model VolunteerEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  communityId String
+  eventDate   DateTime
+  location    String?
+  skillsNeeded String? // comma-separated
+  maxVolunteers Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  community   Community                    @relation(fields: [communityId], references: [id])
+  participants VolunteerEventParticipant[]
+}
+
+model VolunteerEventParticipant {
+  id          String   @id @default(cuid())
+  eventId     String
+  userId      String
+  hoursLogged Float    @default(0)
+  attended    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  event       VolunteerEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+}
+
+// ============================================================
+// FR-012: Moderation & Trust
+// ============================================================
+
+model ModerationReport {
+  id              String   @id @default(cuid())
+  reporterId      String?
+  targetId        String
+  targetType      String   // issue, comment, user, petition
+  reason          String   // spam, abusive, misinformation, false_report, other
+  description     String?
+  status          String   @default("pending") // pending, reviewed, actioned, dismissed
+  reviewedById    String?
+  reviewedAt      DateTime?
+  actionTaken     String?  // warning, content_removed, user_suspended, dismissed
+  createdAt       DateTime @default(now())
+
+  reporter        User?    @relation("ModerationReporter", fields: [reporterId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  targetType  String?
+  targetId    String?
+  details     String?  // JSON string
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+}

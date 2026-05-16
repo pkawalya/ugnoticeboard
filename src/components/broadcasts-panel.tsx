@@ -24,7 +24,12 @@ import {
   Heart,
   Wrench,
   Building2,
+  Radio,
 } from 'lucide-react'
+
+type BroadcastCategory = 'emergency' | 'health' | 'security' | 'infrastructure' | 'civic' | 'general'
+type BroadcastPriority = 'low' | 'normal' | 'high' | 'critical'
+type BroadcastStatus = 'draft' | 'published' | 'expired'
 
 function mapBroadcastFromApi(raw: Record<string, unknown>): Broadcast {
   const community = raw.community as Record<string, string> | undefined
@@ -51,13 +56,13 @@ function mapBroadcastFromApi(raw: Record<string, unknown>): Broadcast {
   }
 }
 
-const categoryTabs: { value: string; label: string; icon: React.ElementType }[] = [
-  { value: 'all', label: 'All', icon: Megaphone },
-  { value: 'emergency', label: 'Emergency', icon: Siren },
-  { value: 'health', label: 'Health', icon: Heart },
-  { value: 'security', label: 'Security', icon: Shield },
-  { value: 'infrastructure', label: 'Infra', icon: Wrench },
-  { value: 'civic', label: 'Civic', icon: Building2 },
+const categoryTabs: { value: string; label: string; icon: React.ElementType; gradient: string }[] = [
+  { value: 'all', label: 'All', icon: Megaphone, gradient: 'from-slate-500 to-slate-600' },
+  { value: 'emergency', label: 'Emergency', icon: Siren, gradient: 'from-red-500 to-red-600' },
+  { value: 'health', label: 'Health', icon: Heart, gradient: 'from-pink-500 to-rose-500' },
+  { value: 'security', label: 'Security', icon: Shield, gradient: 'from-purple-500 to-violet-500' },
+  { value: 'infrastructure', label: 'Infra', icon: Wrench, gradient: 'from-amber-500 to-yellow-500' },
+  { value: 'civic', label: 'Civic', icon: Building2, gradient: 'from-cyan-500 to-blue-500' },
 ]
 
 interface BroadcastsPanelProps {
@@ -88,7 +93,6 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
 
       let mapped = (data.data || []).map(mapBroadcastFromApi)
 
-      // Client-side search filter
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         mapped = mapped.filter(
@@ -96,7 +100,6 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
         )
       }
 
-      // Client-side district filter
       if (districtFilter) {
         mapped = mapped.filter(
           (b: Broadcast) => b.communityName?.toLowerCase() === districtFilter.toLowerCase()
@@ -116,20 +119,32 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
     fetchBroadcasts()
   }, [fetchBroadcasts])
 
-  const priorityColor: Record<string, string> = {
-    low: 'border-l-slate-400',
-    normal: 'border-l-blue-400',
-    high: 'border-l-orange-400',
-    critical: 'border-l-red-500',
+  const priorityConfig: Record<string, { border: string; bg: string; dot: string }> = {
+    low: { border: 'border-l-slate-400', bg: 'bg-slate-50', dot: 'bg-slate-400' },
+    normal: { border: 'border-l-blue-400', bg: 'bg-blue-50/30', dot: 'bg-blue-400' },
+    high: { border: 'border-l-orange-500', bg: 'bg-orange-50/50', dot: 'bg-orange-500' },
+    critical: { border: 'border-l-red-500', bg: 'bg-red-50/50', dot: 'bg-red-500' },
   }
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b p-4">
+      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-blue-50/50 via-cyan-50/30 to-transparent p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Authority Broadcasts</h2>
-          <Button onClick={() => setShowForm(true)} size="sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
+              <Radio className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold tracking-tight">Authority Broadcasts</h2>
+              <p className="text-xs text-muted-foreground">Official announcements and alerts</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowForm(true)}
+            size="sm"
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm shadow-green-600/20"
+          >
             <Plus className="mr-1.5 h-4 w-4" />
             Create Broadcast
           </Button>
@@ -137,20 +152,20 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
           <Input
             placeholder="Search broadcasts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 bg-white border-border/60 focus:border-blue-300 focus:ring-blue-200"
           />
         </div>
 
         {/* Category Tabs */}
         <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-          <TabsList className="h-8 w-full justify-start overflow-x-auto">
+          <TabsList className="h-9 w-full justify-start overflow-x-auto bg-muted/30 p-1">
             {categoryTabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="h-6 px-2 text-xs">
+              <TabsTrigger key={tab.value} value={tab.value} className="h-7 px-3 text-xs font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 <tab.icon className="mr-1 h-3 w-3" />
                 {tab.label}
               </TabsTrigger>
@@ -164,12 +179,12 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
         <div className="space-y-3 p-4">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
+              <Card key={i} className="border-border/40">
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Skeleton className="h-5 w-16" />
-                      <Skeleton className="h-5 w-14" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-5 w-14 rounded-full" />
                     </div>
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-full" />
@@ -179,70 +194,82 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
               </Card>
             ))
           ) : error ? (
-            <div className="py-8 text-center">
-              <p className="text-destructive text-sm">{error}</p>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <p className="text-destructive text-sm font-medium">{error}</p>
               <Button variant="outline" className="mt-3" size="sm" onClick={fetchBroadcasts}>
                 Retry
               </Button>
             </div>
           ) : (
-            broadcasts.map((broadcast) => (
-              <motion.div
-                key={broadcast.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className={`border-l-4 ${priorityColor[broadcast.priority] || ''} ${
-                  broadcast.category === 'emergency' ? 'bg-red-50/50 dark:bg-red-950/10' : ''
-                }`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      {broadcast.category === 'emergency' && (
-                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
-                          <AlertTriangle className="h-4 w-4 text-red-600 animate-pulse" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                          <CategoryBadge category={broadcast.category} />
-                          <Badge
-                            variant={broadcast.priority === 'critical' ? 'destructive' : 'outline'}
-                            className="text-[10px]"
-                          >
-                            {broadcast.priority}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px]">
-                            {broadcast.targetLevel}
-                          </Badge>
-                        </div>
-                        <h3 className="font-medium text-sm leading-tight">{broadcast.title}</h3>
-                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                          {broadcast.content}
-                        </p>
-                        <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                          {broadcast.communityName && (
-                            <span>{broadcast.communityName}</span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(broadcast.createdAt), { addSuffix: true })}
-                          </span>
-                          {broadcast.publishedByName && (
-                            <span>by {broadcast.publishedByName}</span>
-                          )}
+            broadcasts.map((broadcast, index) => {
+              const pConfig = priorityConfig[broadcast.priority] || priorityConfig.normal
+              return (
+                <motion.div
+                  key={broadcast.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.03 }}
+                >
+                  <Card className={`border-l-4 ${pConfig.border} ${pConfig.bg} border-border/30 transition-all duration-200 hover:shadow-md`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        {broadcast.category === 'emergency' && (
+                          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-sm shadow-red-500/20">
+                            <AlertTriangle className="h-4 w-4 text-white animate-pulse" />
+                          </div>
+                        )}
+                        {broadcast.category !== 'emergency' && (
+                          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
+                            <Megaphone className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                            <CategoryBadge category={broadcast.category} />
+                            <Badge
+                              variant={broadcast.priority === 'critical' ? 'destructive' : 'outline'}
+                              className={`text-[10px] font-semibold ${broadcast.priority === 'critical' ? '' : 'border-border/50'}`}
+                            >
+                              {broadcast.priority}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] border-border/50">
+                              {broadcast.targetLevel}
+                            </Badge>
+                          </div>
+                          <h3 className="font-semibold text-sm leading-tight">{broadcast.title}</h3>
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                            {broadcast.content}
+                          </p>
+                          <div className="mt-2.5 flex items-center gap-3 text-xs text-muted-foreground/80">
+                            {broadcast.communityName && (
+                              <span className="inline-flex items-center gap-1 font-medium">{broadcast.communityName}</span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDistanceToNow(new Date(broadcast.createdAt), { addSuffix: true })}
+                            </span>
+                            {broadcast.publishedByName && (
+                              <span>by <span className="font-medium">{broadcast.publishedByName}</span></span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })
           )}
 
           {!isLoading && !error && broadcasts.length === 0 && (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground text-sm">No broadcasts found.</p>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+                <Megaphone className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">No broadcasts found.</p>
             </div>
           )}
         </div>

@@ -23,16 +23,15 @@ interface FeedItem {
   severity?: string
 }
 
-const typeConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string }> = {
-  issue: { icon: AlertTriangle, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  broadcast: { icon: Megaphone, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  escalation: { icon: ArrowUpCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
-  status_change: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100' },
-  vote: { icon: Bell, color: 'text-purple-600', bgColor: 'bg-purple-100' },
-  petition: { icon: FileText, color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
+const typeConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string; gradient: string }> = {
+  issue: { icon: AlertTriangle, color: 'text-orange-600', bgColor: 'bg-orange-100', gradient: 'from-orange-500 to-amber-500' },
+  broadcast: { icon: Megaphone, color: 'text-blue-600', bgColor: 'bg-blue-100', gradient: 'from-blue-500 to-cyan-500' },
+  escalation: { icon: ArrowUpCircle, color: 'text-red-600', bgColor: 'bg-red-100', gradient: 'from-red-500 to-rose-500' },
+  status_change: { icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-100', gradient: 'from-green-500 to-emerald-500' },
+  vote: { icon: Bell, color: 'text-purple-600', bgColor: 'bg-purple-100', gradient: 'from-purple-500 to-violet-500' },
+  petition: { icon: FileText, color: 'text-teal-600', bgColor: 'bg-teal-100', gradient: 'from-teal-500 to-cyan-500' },
 }
 
-// Map issue status to feed type
 function statusToFeedType(status: string): FeedItem['type'] {
   switch (status) {
     case 'escalated': return 'escalation'
@@ -60,7 +59,6 @@ export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
         if (!res.ok) throw new Error('Failed to fetch')
         const data = await res.json()
 
-        // Convert recentActivity from stats API to feed items
         const items: FeedItem[] = (data.recentActivity || []).map((item: Record<string, unknown>) => {
           const community = item.community as Record<string, string> | undefined
           return {
@@ -89,11 +87,11 @@ export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
       <ScrollArea style={{ maxHeight }} className={className}>
         <div className="space-y-3 p-1">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex gap-3 rounded-lg border p-3">
-              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+            <div key={i} className="flex gap-3 rounded-xl border border-border/30 p-3">
+              <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
               <div className="space-y-2 flex-1">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-4 w-3/4 rounded" />
+                <Skeleton className="h-3 w-1/2 rounded" />
               </div>
             </div>
           ))}
@@ -104,9 +102,9 @@ export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
 
   return (
     <ScrollArea style={{ maxHeight }} className={className}>
-      <div className="space-y-3 p-1">
+      <div className="space-y-2 p-1">
         {feedItems.length === 0 ? (
-          <div className="py-6 text-center">
+          <div className="py-8 text-center">
             <p className="text-muted-foreground text-sm">No recent activity.</p>
           </div>
         ) : (
@@ -114,19 +112,24 @@ export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
             const config = typeConfig[item.type] || typeConfig.issue
             const Icon = config.icon
             return (
-              <div key={item.id} className="flex gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
-                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${config.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${config.color}`} />
+              <div key={item.id} className="flex gap-3 rounded-xl border border-border/30 p-3 transition-all duration-200 hover:bg-muted/30 hover:border-border/50 group">
+                <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${config.gradient} shadow-sm`}>
+                  <Icon className="h-4 w-4 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{item.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">{item.description}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
+                  <p className="truncate text-sm font-semibold group-hover:text-green-700 transition-colors">{item.title}</p>
+                  <p className="truncate text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground/70 font-medium">
                       {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
                     </span>
                     {item.severity && (
-                      <Badge variant="outline" className="h-4 border-0 px-1 text-[10px]">
+                      <Badge variant="outline" className={`h-4 border-0 px-1.5 text-[10px] font-semibold ${
+                        item.severity === 'critical' ? 'bg-red-50 text-red-700' :
+                        item.severity === 'high' ? 'bg-orange-50 text-orange-700' :
+                        item.severity === 'medium' ? 'bg-yellow-50 text-yellow-700' :
+                        'bg-green-50 text-green-700'
+                      }`}>
                         {item.severity}
                       </Badge>
                     )}

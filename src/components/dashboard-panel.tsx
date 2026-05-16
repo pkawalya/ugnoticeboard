@@ -30,6 +30,7 @@ import {
   Users,
   MapPin,
   Activity,
+  TrendingUp,
 } from 'lucide-react'
 
 const COLORS = ['#22c55e', '#eab308', '#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
@@ -88,7 +89,6 @@ export function DashboardPanel() {
     fetchStats()
   }, [])
 
-  // Derive dashboard stats from API response
   const dashboardStats: DashboardStats = stats ? {
     totalIssues: stats.totals.issues,
     openIssues: stats.totals.issues - (stats.issuesByStatus.find(s => s.status === 'resolved')?.count || 0) - (stats.issuesByStatus.find(s => s.status === 'closed')?.count || 0),
@@ -103,18 +103,9 @@ export function DashboardPanel() {
     totalCommunities: stats.totals.communities,
     activeUsers: stats.totals.users,
   } : {
-    totalIssues: 0,
-    openIssues: 0,
-    resolvedIssues: 0,
-    criticalIssues: 0,
-    totalBroadcasts: 0,
-    activeBroadcasts: 0,
-    totalFacilities: 0,
-    operationalFacilities: 0,
-    totalProjects: 0,
-    activeProjects: 0,
-    totalCommunities: 0,
-    activeUsers: 0,
+    totalIssues: 0, openIssues: 0, resolvedIssues: 0, criticalIssues: 0,
+    totalBroadcasts: 0, activeBroadcasts: 0, totalFacilities: 0, operationalFacilities: 0,
+    totalProjects: 0, activeProjects: 0, totalCommunities: 0, activeUsers: 0,
   }
 
   const categoryBreakdown = stats?.issuesByCategory || []
@@ -123,101 +114,112 @@ export function DashboardPanel() {
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-6">
-        {/* Key Metrics */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Dashboard Overview</h2>
-          {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-8 w-16" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="py-8 text-center">
-              <p className="text-destructive text-sm">{error}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              <StatCard
-                title="Total Issues"
-                value={dashboardStats.totalIssues}
-                icon={AlertTriangle}
-                description="All reported issues"
-                iconClassName="bg-orange-500"
-              />
-              <StatCard
-                title="Open Issues"
-                value={dashboardStats.openIssues}
-                icon={Activity}
-                description="Currently active"
-                iconClassName="bg-yellow-500"
-              />
-              <StatCard
-                title="Resolved"
-                value={dashboardStats.resolvedIssues}
-                icon={CheckCircle2}
-                description="Successfully resolved"
-                iconClassName="bg-green-500"
-                trend={stats?.resolvedThisMonth ? { value: stats.resolvedThisMonth, isPositive: true } : undefined}
-              />
-              <StatCard
-                title="Active Broadcasts"
-                value={dashboardStats.activeBroadcasts}
-                icon={Radio}
-                description={`of ${dashboardStats.totalBroadcasts} total`}
-                iconClassName="bg-blue-500"
-              />
-              <StatCard
-                title="Facilities"
-                value={dashboardStats.operationalFacilities}
-                icon={Building2}
-                description={`of ${dashboardStats.totalFacilities} total`}
-                iconClassName="bg-purple-500"
-              />
-              <StatCard
-                title="Active Projects"
-                value={dashboardStats.activeProjects}
-                icon={HardHat}
-                description={`of ${dashboardStats.totalProjects} total`}
-                iconClassName="bg-amber-500"
-              />
-              <StatCard
-                title="Communities"
-                value={dashboardStats.totalCommunities}
-                icon={MapPin}
-                description="Registered communities"
-                iconClassName="bg-teal-500"
-              />
-              <StatCard
-                title="Active Users"
-                value={dashboardStats.activeUsers.toLocaleString()}
-                icon={Users}
-                description="Platform participants"
-                iconClassName="bg-rose-500"
-              />
-            </div>
-          )}
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 shadow-sm shadow-teal-500/20">
+            <TrendingUp className="h-4.5 w-4.5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">Dashboard Overview</h2>
+            <p className="text-xs text-muted-foreground">Platform analytics and performance metrics</p>
+          </div>
         </div>
+
+        {/* Key Metrics */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Card key={i} className="border-border/40">
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20 rounded" />
+                    <Skeleton className="h-8 w-16 rounded" />
+                    <Skeleton className="h-3 w-24 rounded" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="py-12 text-center">
+            <p className="text-destructive text-sm">{error}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <StatCard
+              title="Total Issues"
+              value={dashboardStats.totalIssues}
+              icon={AlertTriangle}
+              description="All reported issues"
+              iconClassName="bg-gradient-to-br from-orange-500 to-amber-500"
+            />
+            <StatCard
+              title="Open Issues"
+              value={dashboardStats.openIssues}
+              icon={Activity}
+              description="Currently active"
+              iconClassName="bg-gradient-to-br from-yellow-500 to-amber-400"
+            />
+            <StatCard
+              title="Resolved"
+              value={dashboardStats.resolvedIssues}
+              icon={CheckCircle2}
+              description="Successfully resolved"
+              iconClassName="bg-gradient-to-br from-green-500 to-emerald-500"
+              trend={stats?.resolvedThisMonth ? { value: stats.resolvedThisMonth, isPositive: true } : undefined}
+            />
+            <StatCard
+              title="Active Broadcasts"
+              value={dashboardStats.activeBroadcasts}
+              icon={Radio}
+              description={`of ${dashboardStats.totalBroadcasts} total`}
+              iconClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
+            />
+            <StatCard
+              title="Facilities"
+              value={dashboardStats.operationalFacilities}
+              icon={Building2}
+              description={`of ${dashboardStats.totalFacilities} total`}
+              iconClassName="bg-gradient-to-br from-purple-500 to-violet-500"
+            />
+            <StatCard
+              title="Active Projects"
+              value={dashboardStats.activeProjects}
+              icon={HardHat}
+              description={`of ${dashboardStats.totalProjects} total`}
+              iconClassName="bg-gradient-to-br from-amber-500 to-yellow-400"
+            />
+            <StatCard
+              title="Communities"
+              value={dashboardStats.totalCommunities}
+              icon={MapPin}
+              description="Registered communities"
+              iconClassName="bg-gradient-to-br from-teal-500 to-cyan-500"
+            />
+            <StatCard
+              title="Active Users"
+              value={dashboardStats.activeUsers.toLocaleString()}
+              icon={Users}
+              description="Platform participants"
+              iconClassName="bg-gradient-to-br from-rose-500 to-pink-500"
+            />
+          </div>
+        )}
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Issue Breakdown by Category */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Issues by Category</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Card className="border-border/40 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-5 py-3">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Issues by Category
+              </CardTitle>
+            </div>
+            <CardContent className="pt-4">
               {isLoading ? (
                 <div className="flex items-center justify-center h-[280px]">
-                  <Skeleton className="h-[250px] w-full" />
+                  <Skeleton className="h-[250px] w-full rounded-xl" />
                 </div>
               ) : categoryBreakdown.length === 0 ? (
                 <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">
@@ -226,17 +228,18 @@ export function DashboardPanel() {
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={categoryBreakdown} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="category" tick={{ fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="category" tick={{ fontSize: 11, fontWeight: 500 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        borderRadius: '10px',
+                        border: 'none',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                        padding: '8px 12px',
                       }}
                     />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                       {categoryBreakdown.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -248,14 +251,17 @@ export function DashboardPanel() {
           </Card>
 
           {/* Issue Status Distribution */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Issue Status Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Card className="border-border/40 overflow-hidden">
+            <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-5 py-3">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Issue Status Distribution
+              </CardTitle>
+            </div>
+            <CardContent className="pt-4">
               {isLoading ? (
                 <div className="flex items-center justify-center h-[280px]">
-                  <Skeleton className="h-[250px] w-full" />
+                  <Skeleton className="h-[250px] w-full rounded-xl" />
                 </div>
               ) : statusDistribution.length === 0 ? (
                 <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">
@@ -292,21 +298,27 @@ export function DashboardPanel() {
         {/* Bottom Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Community Hierarchy */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Community Hierarchy</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Card className="border-border/40 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-5 py-3">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Community Hierarchy
+              </CardTitle>
+            </div>
+            <CardContent className="pt-4">
               <CommunityBrowser className="h-[350px]" />
             </CardContent>
           </Card>
 
           {/* Recent Activity */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Card className="border-border/40 overflow-hidden">
+            <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-5 py-3">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Recent Activity
+              </CardTitle>
+            </div>
+            <CardContent className="pt-4">
               <LiveFeed maxHeight="350px" />
             </CardContent>
           </Card>

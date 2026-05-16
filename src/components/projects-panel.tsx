@@ -31,13 +31,17 @@ import {
   CheckCircle2,
   AlertCircle,
   PauseCircle,
+  HardHat,
 } from 'lucide-react'
 
-const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  planned: { label: 'Planned', color: 'text-blue-600', icon: Clock },
-  in_progress: { label: 'In Progress', color: 'text-green-600', icon: TrendingUp },
-  completed: { label: 'Completed', color: 'text-emerald-600', icon: CheckCircle2 },
-  stalled: { label: 'Stalled', color: 'text-red-600', icon: PauseCircle },
+type ProjectCategory = 'infrastructure' | 'health' | 'education' | 'water' | 'agriculture'
+type ProjectStatus = 'planned' | 'in_progress' | 'completed' | 'stalled'
+
+const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
+  planned: { label: 'Planned', color: 'text-blue-700', bgColor: 'bg-blue-50', icon: Clock },
+  in_progress: { label: 'In Progress', color: 'text-green-700', bgColor: 'bg-green-50', icon: TrendingUp },
+  completed: { label: 'Completed', color: 'text-emerald-700', bgColor: 'bg-emerald-50', icon: CheckCircle2 },
+  stalled: { label: 'Stalled', color: 'text-red-700', bgColor: 'bg-red-50', icon: PauseCircle },
 }
 
 function mapProjectFromApi(raw: Record<string, unknown>): Project {
@@ -107,13 +111,11 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
 
       let mapped = (data.data || []).map(mapProjectFromApi)
 
-      // Client-side search
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         mapped = mapped.filter((p: Project) => p.name.toLowerCase().includes(q))
       }
 
-      // Client-side district filter
       if (districtFilter) {
         mapped = mapped.filter((p: Project) => p.communityName?.toLowerCase() === districtFilter.toLowerCase())
       }
@@ -133,18 +135,24 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-3 border-b p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Public Projects</h2>
+      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-transparent p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-yellow-500 shadow-sm">
+            <HardHat className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">Public Projects</h2>
+            <p className="text-xs text-muted-foreground">Track government and community projects</p>
+          </div>
         </div>
 
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+            <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white border-border/60 focus:border-amber-300 focus:ring-amber-200" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 h-9 text-xs">
+            <SelectTrigger className="w-32 h-9 text-xs bg-white">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -156,7 +164,7 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-32 h-9 text-xs">
+            <SelectTrigger className="w-32 h-9 text-xs bg-white">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -175,84 +183,89 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
         <div className="space-y-3 p-4">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
+              <Card key={i} className="border-border/40">
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Skeleton className="h-5 w-20" />
-                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
                     </div>
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-2 w-full" />
+                    <Skeleton className="h-4 w-3/4 rounded" />
+                    <Skeleton className="h-2 w-full rounded" />
                     <div className="grid grid-cols-2 gap-2">
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full rounded-lg" />
+                      <Skeleton className="h-10 w-full rounded-lg" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))
           ) : error ? (
-            <div className="py-8 text-center">
-              <p className="text-destructive text-sm">{error}</p>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+              </div>
+              <p className="text-destructive text-sm font-medium">{error}</p>
               <Button variant="outline" className="mt-3" size="sm" onClick={fetchProjects}>
                 Retry
               </Button>
             </div>
           ) : (
-            projects.map((project) => {
+            projects.map((project, index) => {
               const config = statusConfig[project.status] || statusConfig.planned
               const StatusIcon = config.icon
               const budgetPercent = project.budgetAllocated > 0 ? Math.round((project.budgetSpent / project.budgetAllocated) * 100) : 0
 
               return (
-                <motion.div key={project.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <motion.div key={project.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
                   <Card
-                    className={`cursor-pointer transition-all hover:shadow-md ${expandedId === project.id ? 'ring-2 ring-primary/20' : ''}`}
+                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-amber-200 ${
+                      expandedId === project.id ? 'ring-2 ring-amber-200 border-amber-200 shadow-sm' : ''
+                    }`}
                     onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                            <Badge variant="outline" className={`text-xs ${config.color} border-current`}>
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                            <Badge className={`text-[10px] font-semibold ${config.bgColor} ${config.color} border-0`}>
                               <StatusIcon className="mr-1 h-3 w-3" />
                               {config.label}
                             </Badge>
                             <CategoryBadge category={project.category} showIcon={false} />
                           </div>
-                          <h3 className="font-medium text-sm leading-tight">{project.name}</h3>
+                          <h3 className="font-semibold text-sm leading-tight">{project.name}</h3>
                           {project.communityName && (
                             <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> {project.communityName}
+                              <MapPin className="h-3 w-3 text-green-500" /> {project.communityName}
                             </p>
                           )}
                         </div>
                         {expandedId === project.id ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <ChevronUp className="h-4 w-4 text-amber-600 shrink-0" />
                         ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                         )}
                       </div>
 
                       {/* Progress Bar */}
                       <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">{project.progressPercent}%</span>
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="text-muted-foreground font-medium">Progress</span>
+                          <span className="font-bold text-green-700">{project.progressPercent}%</span>
                         </div>
-                        <Progress value={project.progressPercent} className="h-2" />
+                        <Progress value={project.progressPercent} className="h-2.5" />
                       </div>
 
                       {/* Budget Summary */}
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-md bg-muted/50 p-2">
-                          <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Allocated</span>
-                          <span className="font-medium">{formatCurrency(project.budgetAllocated)}</span>
+                      <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-2.5">
+                          <span className="text-green-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Allocated</span>
+                          <span className="font-bold text-green-800 text-sm">{formatCurrency(project.budgetAllocated)}</span>
                         </div>
-                        <div className="rounded-md bg-muted/50 p-2">
-                          <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Spent</span>
-                          <span className="font-medium">{formatCurrency(project.budgetSpent)}</span>
+                        <div className="rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 p-2.5">
+                          <span className="text-amber-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Spent</span>
+                          <span className="font-bold text-amber-800 text-sm">{formatCurrency(project.budgetSpent)}</span>
                         </div>
                       </div>
 
@@ -260,28 +273,26 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
                       <AnimatePresence>
                         {expandedId === project.id && (
                           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <Separator className="my-3" />
-                            <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
+                            <Separator className="my-3 bg-border/50" />
+                            <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{project.description}</p>
 
-                            {/* Budget Visualization */}
-                            <div className="mb-3 rounded-lg border p-3">
-                              <h4 className="text-xs font-semibold mb-2">Budget Breakdown</h4>
+                            <div className="mb-3 rounded-xl border border-border/40 p-3">
+                              <h4 className="text-xs font-bold mb-2">Budget Breakdown</h4>
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="h-4 rounded bg-green-500" style={{ width: `${100 - budgetPercent}%`, minWidth: '4px' }} />
+                                  <div className="h-4 rounded-md bg-gradient-to-r from-green-400 to-green-500" style={{ width: `${100 - budgetPercent}%`, minWidth: '4px' }} />
                                   <span className="text-xs text-muted-foreground">Remaining: {formatCurrency(project.budgetAllocated - project.budgetSpent)}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <div className="h-4 rounded bg-amber-500" style={{ width: `${budgetPercent}%`, minWidth: '4px' }} />
+                                  <div className="h-4 rounded-md bg-gradient-to-r from-amber-400 to-yellow-500" style={{ width: `${budgetPercent}%`, minWidth: '4px' }} />
                                   <span className="text-xs text-muted-foreground">Spent: {formatCurrency(project.budgetSpent)} ({budgetPercent}%)</span>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Milestones */}
                             {project.milestones && project.milestones.length > 0 && (
                               <div className="mb-3">
-                                <h4 className="text-xs font-semibold mb-2">Milestones</h4>
+                                <h4 className="text-xs font-bold mb-2">Milestones</h4>
                                 <div className="space-y-1.5">
                                   {project.milestones.map((milestone) => (
                                     <div key={milestone.id} className="flex items-center gap-2 text-xs">
@@ -292,7 +303,7 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
                                       ) : (
                                         <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                       )}
-                                      <span className={milestone.status === 'completed' ? 'line-through text-muted-foreground' : ''}>
+                                      <span className={milestone.status === 'completed' ? 'line-through text-muted-foreground' : 'font-medium'}>
                                         {milestone.title}
                                       </span>
                                     </div>
@@ -318,8 +329,11 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
           )}
 
           {!isLoading && !error && projects.length === 0 && (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground text-sm">No projects found.</p>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+                <HardHat className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">No projects found.</p>
             </div>
           )}
         </div>

@@ -20,7 +20,11 @@ import {
   Clock,
   CheckCircle,
   HandHeart,
+  Heart,
 } from 'lucide-react'
+
+type PetitionStatus = 'active' | 'closed' | 'responded'
+type PollStatus = 'active' | 'closed'
 
 function mapPetitionFromApi(raw: Record<string, unknown>): Petition {
   const community = raw.community as Record<string, string> | undefined
@@ -116,21 +120,28 @@ export function EngagementPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b p-4">
-        <h2 className="text-lg font-semibold">Community Engagement</h2>
-        <p className="text-xs text-muted-foreground mt-1">Participate in petitions, polls, and volunteer events</p>
+      <div className="border-b bg-gradient-to-r from-rose-50/50 via-pink-50/30 to-transparent p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 shadow-sm">
+            <Heart className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">Community Engagement</h2>
+            <p className="text-xs text-muted-foreground">Participate in petitions, polls, and volunteer events</p>
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1 flex-col">
         <div className="border-b px-4">
-          <TabsList className="h-9 w-full justify-start">
-            <TabsTrigger value="petitions" className="gap-1.5 text-xs">
+          <TabsList className="h-9 w-full justify-start bg-muted/30 p-1">
+            <TabsTrigger value="petitions" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <FileText className="h-3.5 w-3.5" /> Petitions
             </TabsTrigger>
-            <TabsTrigger value="polls" className="gap-1.5 text-xs">
+            <TabsTrigger value="polls" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <BarChart3 className="h-3.5 w-3.5" /> Polls
             </TabsTrigger>
-            <TabsTrigger value="volunteer" className="gap-1.5 text-xs">
+            <TabsTrigger value="volunteer" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <HandHeart className="h-3.5 w-3.5" /> Volunteer
             </TabsTrigger>
           </TabsList>
@@ -141,65 +152,68 @@ export function EngagementPanel() {
             <div className="space-y-3 p-4">
               {isLoadingPetitions ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i}>
+                  <Card key={i} className="border-border/40">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                        <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
                         <div className="space-y-2 flex-1">
-                          <Skeleton className="h-5 w-16" />
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-2 w-full" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                          <Skeleton className="h-4 w-3/4 rounded" />
+                          <Skeleton className="h-3 w-full rounded" />
+                          <Skeleton className="h-2 w-full rounded" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : petitions.length === 0 ? (
-                <div className="py-8 text-center">
-                  <p className="text-muted-foreground text-sm">No petitions found.</p>
+                <div className="py-12 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+                    <FileText className="h-6 w-6 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-muted-foreground text-sm font-medium">No petitions found.</p>
                 </div>
               ) : (
-                petitions.map((petition) => {
+                petitions.map((petition, index) => {
                   const progress = petition.signatureCount && petition.targetSignatureCount
                     ? Math.round((petition.signatureCount / petition.targetSignatureCount) * 100)
                     : 0
                   return (
-                    <motion.div key={petition.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                      <Card>
+                    <motion.div key={petition.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
+                      <Card className="border-border/40 transition-all duration-200 hover:shadow-md">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                              <FileText className="h-4 w-4 text-primary" />
+                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-sm">
+                              <FileText className="h-4 w-4 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Badge variant={petition.status === 'active' ? 'default' : 'secondary'} className="text-[10px] mb-1">
+                              <Badge variant={petition.status === 'active' ? 'default' : 'secondary'} className={`text-[10px] mb-1 font-semibold ${petition.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}`}>
                                 {petition.status}
                               </Badge>
-                              <h3 className="font-medium text-sm">{petition.title}</h3>
-                              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{petition.description}</p>
+                              <h3 className="font-semibold text-sm">{petition.title}</h3>
+                              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">{petition.description}</p>
                               {petition.communityName && (
                                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" /> {petition.communityName}
+                                  <MapPin className="h-3 w-3 text-green-500" /> {petition.communityName}
                                 </p>
                               )}
 
                               <div className="mt-3">
-                                <div className="flex items-center justify-between text-xs mb-1">
-                                  <span className="flex items-center gap-1"><ThumbsUp className="h-3 w-3" /> {petition.signatureCount || 0} signatures</span>
-                                  <span className="text-muted-foreground">{progress}% of {petition.targetSignatureCount}</span>
+                                <div className="flex items-center justify-between text-xs mb-1.5">
+                                  <span className="flex items-center gap-1 font-medium"><ThumbsUp className="h-3 w-3 text-green-600" /> {petition.signatureCount || 0} signatures</span>
+                                  <span className="text-muted-foreground font-medium">{progress}% of {petition.targetSignatureCount}</span>
                                 </div>
                                 <Progress value={progress} className="h-2" />
                               </div>
 
                               {petition.officialResponse && (
-                                <div className="mt-2 rounded-md bg-green-50 dark:bg-green-950/20 p-2">
-                                  <p className="text-xs font-medium text-green-700 dark:text-green-400">Official Response:</p>
-                                  <p className="text-xs text-green-600 dark:text-green-500">{petition.officialResponse}</p>
+                                <div className="mt-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 p-2.5">
+                                  <p className="text-xs font-semibold text-green-700">Official Response:</p>
+                                  <p className="text-xs text-green-600 mt-0.5">{petition.officialResponse}</p>
                                 </div>
                               )}
 
-                              <Button size="sm" variant="outline" className="h-7 text-xs mt-2">
+                              <Button size="sm" variant="outline" className="h-7 text-xs mt-2 border-green-200 text-green-700 hover:bg-green-50">
                                 <ThumbsUp className="mr-1 h-3 w-3" /> Sign Petition
                               </Button>
                             </div>
@@ -219,40 +233,43 @@ export function EngagementPanel() {
             <div className="space-y-3 p-4">
               {isLoadingPolls ? (
                 Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i}>
+                  <Card key={i} className="border-border/40">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                        <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
                         <div className="space-y-2 flex-1">
-                          <Skeleton className="h-5 w-16" />
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-2 w-full" />
-                          <Skeleton className="h-2 w-full" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                          <Skeleton className="h-4 w-3/4 rounded" />
+                          <Skeleton className="h-2 w-full rounded" />
+                          <Skeleton className="h-2 w-full rounded" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))
               ) : polls.length === 0 ? (
-                <div className="py-8 text-center">
-                  <p className="text-muted-foreground text-sm">No polls found.</p>
+                <div className="py-12 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+                    <BarChart3 className="h-6 w-6 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-muted-foreground text-sm font-medium">No polls found.</p>
                 </div>
               ) : (
-                polls.map((poll) => {
+                polls.map((poll, index) => {
                   const totalVotes = poll.totalVotes || poll.options.reduce((sum, o) => sum + o.voteCount, 0)
                   return (
-                    <motion.div key={poll.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                      <Card>
+                    <motion.div key={poll.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
+                      <Card className="border-border/40 transition-all duration-200 hover:shadow-md">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100">
-                              <BarChart3 className="h-4 w-4 text-blue-600" />
+                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
+                              <BarChart3 className="h-4 w-4 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Badge variant={poll.status === 'active' ? 'default' : 'secondary'} className="text-[10px] mb-1">
+                              <Badge variant={poll.status === 'active' ? 'default' : 'secondary'} className={`text-[10px] mb-1 font-semibold ${poll.status === 'active' ? 'bg-blue-100 text-blue-700 border-blue-200' : ''}`}>
                                 {poll.status}
                               </Badge>
-                              <h3 className="font-medium text-sm">{poll.title}</h3>
+                              <h3 className="font-semibold text-sm">{poll.title}</h3>
                               {poll.description && (
                                 <p className="mt-0.5 text-xs text-muted-foreground">{poll.description}</p>
                               )}
@@ -260,18 +277,18 @@ export function EngagementPanel() {
                                 <Users className="h-3 w-3" /> {totalVotes} votes
                               </p>
 
-                              <div className="mt-3 space-y-2">
+                              <div className="mt-3 space-y-2.5">
                                 {poll.options.map((option) => {
                                   const percent = totalVotes > 0 ? Math.round((option.voteCount / totalVotes) * 100) : 0
                                   return (
                                     <div key={option.id} className="space-y-1">
                                       <div className="flex items-center justify-between text-xs">
-                                        <span>{option.text}</span>
+                                        <span className="font-medium">{option.text}</span>
                                         <span className="text-muted-foreground">{percent}% ({option.voteCount})</span>
                                       </div>
-                                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                      <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
                                         <motion.div
-                                          className="h-full rounded-full bg-primary"
+                                          className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
                                           initial={{ width: 0 }}
                                           animate={{ width: `${percent}%` }}
                                           transition={{ duration: 0.5 }}
@@ -282,7 +299,7 @@ export function EngagementPanel() {
                                 })}
                               </div>
 
-                              <Button size="sm" variant="outline" className="h-7 text-xs mt-3">
+                              <Button size="sm" variant="outline" className="h-7 text-xs mt-3 border-blue-200 text-blue-700 hover:bg-blue-50">
                                 Vote Now
                               </Button>
                             </div>
@@ -300,8 +317,12 @@ export function EngagementPanel() {
         <TabsContent value="volunteer" className="flex-1 m-0">
           <ScrollArea className="h-full">
             <div className="space-y-3 p-4">
-              <div className="py-8 text-center">
-                <p className="text-muted-foreground text-sm">Volunteer events coming soon.</p>
+              <div className="py-12 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-100 to-pink-100">
+                  <HandHeart className="h-6 w-6 text-rose-500" />
+                </div>
+                <p className="text-muted-foreground text-sm font-medium">Volunteer events coming soon.</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Stay tuned for community volunteer opportunities</p>
               </div>
             </div>
           </ScrollArea>

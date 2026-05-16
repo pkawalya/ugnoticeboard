@@ -35,6 +35,8 @@ import {
   Eye,
   Clock,
   MapPin,
+  AlertTriangle,
+  SlidersHorizontal,
 } from 'lucide-react'
 
 function mapIssueFromApi(raw: Record<string, unknown>): Issue {
@@ -97,7 +99,6 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
       if (filters.category) params.set('category', filters.category)
       if (filters.severity) params.set('severity', filters.severity)
       if (districtFilter) {
-        // Find the communityId for the district
         const district = DISTRICTS.find(d => d.name.toLowerCase() === districtFilter.toLowerCase())
         if (district) params.set('communityId', district.name.toLowerCase())
       }
@@ -108,7 +109,6 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
 
       let mappedIssues = (data.data || []).map(mapIssueFromApi)
 
-      // Client-side search filter (API doesn't support search param directly)
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         mappedIssues = mappedIssues.filter(
@@ -116,7 +116,6 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
         )
       }
 
-      // Client-side district filter by name if no communityId match
       if (districtFilter) {
         mappedIssues = mappedIssues.filter(
           (i: Issue) => i.communityName?.toLowerCase() === districtFilter.toLowerCase()
@@ -146,7 +145,6 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
         body: JSON.stringify({ userId: 'demo-user', direction: 'up' }),
       })
       if (res.ok) {
-        // Update the issue vote count locally
         setIssues(prev => prev.map(issue =>
           issue.id === issueId ? { ...issue, voteCount: issue.voteCount + 1 } : issue
         ))
@@ -165,23 +163,34 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b p-4">
+      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-orange-50/50 via-amber-50/30 to-transparent p-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Civic Issues</h2>
-            {districtFilter && (
-              <div className="mt-1 flex items-center gap-2">
-                <Badge variant="secondary" className="gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {districtFilter}
-                </Badge>
-                <Button variant="ghost" size="sm" className="h-5 text-xs" onClick={onDistrictClear}>
-                  Clear
-                </Button>
-              </div>
-            )}
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 shadow-sm">
+              <AlertTriangle className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold tracking-tight">Civic Issues</h2>
+              {districtFilter ? (
+                <div className="mt-0.5 flex items-center gap-2">
+                  <Badge variant="secondary" className="gap-1 bg-green-50 text-green-700 border-green-200">
+                    <MapPin className="h-3 w-3" />
+                    {districtFilter}
+                  </Badge>
+                  <Button variant="ghost" size="sm" className="h-5 text-xs hover:bg-green-50 hover:text-green-700" onClick={onDistrictClear}>
+                    Clear
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Report and track community issues</p>
+              )}
+            </div>
           </div>
-          <Button onClick={() => setShowForm(true)} size="sm">
+          <Button
+            onClick={() => setShowForm(true)}
+            size="sm"
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm shadow-green-600/20"
+          >
             <Plus className="mr-1.5 h-4 w-4" />
             Report Issue
           </Button>
@@ -190,21 +199,21 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
         {/* Search */}
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
             <Input
               placeholder="Search issues..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 bg-white border-border/60 focus:border-green-300 focus:ring-green-200"
             />
           </div>
           <Button
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={showFilters ? 'bg-primary/10' : ''}
+            className={`transition-all ${showFilters ? 'bg-green-50 text-green-700 border-green-200' : 'hover:bg-green-50'}`}
           >
-            <Filter className="h-4 w-4" />
+            <SlidersHorizontal className="h-4 w-4" />
           </Button>
         </div>
 
@@ -219,7 +228,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
             >
               <div className="grid grid-cols-3 gap-2">
                 <Select value={filters.status || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, status: v === 'all' ? undefined : v as IssueStatus }))}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs bg-white">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -234,7 +243,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                 </Select>
 
                 <Select value={filters.category || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, category: v === 'all' ? undefined : v as IssueCategory }))}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs bg-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -248,7 +257,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                 </Select>
 
                 <Select value={filters.severity || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, severity: v === 'all' ? undefined : v as IssueSeverity }))}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs bg-white">
                     <SelectValue placeholder="Severity" />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,7 +274,9 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
         </AnimatePresence>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{issues.length} issues found</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-0.5 font-medium">
+            {issues.length} issues found
+          </span>
         </div>
       </div>
 
@@ -273,14 +284,13 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
       <ScrollArea className="flex-1">
         <div className="space-y-2 p-4">
           {isLoading ? (
-            // Loading skeletons
             Array.from({ length: 5 }).map((_, i) => (
-              <Card key={i}>
+              <Card key={i} className="border-border/40">
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Skeleton className="h-5 w-16" />
-                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
                     </div>
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-1/2" />
@@ -294,62 +304,65 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
               </Card>
             ))
           ) : error ? (
-            <div className="py-8 text-center">
-              <p className="text-destructive text-sm">{error}</p>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <p className="text-destructive text-sm font-medium">{error}</p>
               <Button variant="outline" className="mt-3" size="sm" onClick={fetchIssues}>
                 Retry
               </Button>
             </div>
           ) : (
-            issues.map((issue) => (
+            issues.map((issue, index) => (
               <motion.div
                 key={issue.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.2, delay: index * 0.03 }}
               >
                 <Card
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    expandedId === issue.id ? 'ring-2 ring-primary/20' : ''
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-green-200 ${
+                    expandedId === issue.id ? 'ring-2 ring-green-200 border-green-200 shadow-sm' : ''
                   }`}
                   onClick={() => setExpandedId(expandedId === issue.id ? null : issue.id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
                           <SeverityIndicator severity={issue.severity} />
                           <StatusBadge status={issue.status} />
                           <CategoryBadge category={issue.category} />
                         </div>
-                        <h3 className="font-medium text-sm leading-tight">{issue.title}</h3>
+                        <h3 className="font-semibold text-sm leading-tight">{issue.title}</h3>
                         {issue.communityName && (
-                          <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {issue.communityName} {issue.location && `· ${issue.location}`}
+                          <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-green-500" />
+                            {issue.communityName} {issue.location && <span className="text-muted-foreground/60">· {issue.location}</span>}
                           </p>
                         )}
                       </div>
-                      <div className="shrink-0">
+                      <div className="shrink-0 mt-1">
                         {expandedId === issue.id ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          <ChevronUp className="h-4 w-4 text-green-600" />
                         ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground/50" />
                         )}
                       </div>
                     </div>
 
-                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
+                    <div className="mt-2.5 flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1 hover:text-green-600 transition-colors">
                         <ThumbsUp className="h-3 w-3" /> {issue.voteCount}
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 hover:text-blue-600 transition-colors">
                         <MessageSquare className="h-3 w-3" /> {issue.commentCount}
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 hover:text-purple-600 transition-colors">
                         <Eye className="h-3 w-3" /> {issue.viewCount}
                       </span>
-                      <span className="ml-auto flex items-center gap-1">
+                      <span className="ml-auto flex items-center gap-1 text-muted-foreground/60">
                         <Clock className="h-3 w-3" />
                         {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
                       </span>
@@ -364,18 +377,18 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden"
                         >
-                          <Separator className="my-3" />
-                          <p className="text-sm text-muted-foreground mb-3">{issue.description}</p>
+                          <Separator className="my-3 bg-border/50" />
+                          <p className="text-sm text-muted-foreground leading-relaxed mb-3">{issue.description}</p>
                           {issue.reportedByName && (
                             <p className="text-xs text-muted-foreground mb-3">
-                              Reported by: <span className="font-medium">{issue.isAnonymous ? 'Anonymous' : issue.reportedByName}</span>
+                              Reported by: <span className="font-semibold text-foreground">{issue.isAnonymous ? 'Anonymous' : issue.reportedByName}</span>
                             </p>
                           )}
                           <div className="flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-7 text-xs"
+                              className="h-7 text-xs border-green-200 text-green-700 hover:bg-green-50"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleVote(issue.id)
@@ -384,10 +397,10 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                             >
                               <ThumbsUp className="mr-1 h-3 w-3" /> Vote
                             </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs">
+                            <Button size="sm" variant="outline" className="h-7 text-xs border-orange-200 text-orange-700 hover:bg-orange-50">
                               <ArrowUpCircle className="mr-1 h-3 w-3" /> Escalate
                             </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs">
+                            <Button size="sm" variant="outline" className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50">
                               <MessageSquare className="mr-1 h-3 w-3" /> Comment
                             </Button>
                           </div>
@@ -401,8 +414,11 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
           )}
 
           {!isLoading && !error && issues.length === 0 && (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground text-sm">No issues found matching your filters.</p>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+                <AlertTriangle className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">No issues found matching your filters.</p>
               <Button variant="outline" className="mt-3" size="sm" onClick={() => { setFilters({}); setSearchQuery('') }}>
                 Clear Filters
               </Button>

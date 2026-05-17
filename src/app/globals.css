@@ -151,6 +151,7 @@
   color: #9ca3af !important;
   font-size: 18px !important;
   padding: 6px 8px 0 0 !important;
+  z-index: 10 !important;
 }
 
 .leaflet-popup-close-button:hover {
@@ -160,6 +161,13 @@
 .district-popup .leaflet-popup-content-wrapper {
   border: none;
   overflow: hidden;
+  border-radius: 16px;
+}
+
+.facility-popup .leaflet-popup-content-wrapper {
+  border: none;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
 .region-tooltip {
@@ -177,7 +185,73 @@
   border-top-color: #16a34a !important;
 }
 
-/* Pulse animation for critical markers */
+/* ============================================================
+   Pin Marker Styles
+   ============================================================ */
+
+.uganda-pin-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.uganda-pin {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25));
+}
+
+.uganda-pin:hover {
+  transform: scale(1.15) translateY(-3px);
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.3));
+  z-index: 9999 !important;
+}
+
+.uganda-pin-critical {
+  animation: pin-critical-pulse 2s ease-out infinite;
+}
+
+@keyframes pin-critical-pulse {
+  0% {
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25)) drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+  }
+  50% {
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25)) drop-shadow(0 0 12px rgba(220, 38, 38, 0.6));
+  }
+  100% {
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25)) drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+  }
+}
+
+/* Critical ring pulse around pin */
+.critical-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -70%);
+  border-radius: 50%;
+  border: 2px solid #dc2626;
+  animation: critical-ring-expand 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes critical-ring-expand {
+  0% {
+    width: 30px;
+    height: 30px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   Pulse Animation for Critical Markers
+   ============================================================ */
+
 .pulse-marker {
   animation: pulse-ring 2s ease-out infinite;
 }
@@ -197,14 +271,54 @@
   }
 }
 
-/* Facility icon styling */
+/* Enhanced critical double-pulse */
+.critical-pulse-marker {
+  animation: critical-pulse-ring 2.5s ease-out infinite;
+}
+
+@keyframes critical-pulse-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 0.2;
+    transform: scale(2);
+  }
+  70% {
+    opacity: 0.1;
+    transform: scale(2.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+/* ============================================================
+   Facility Icon Styling
+   ============================================================ */
+
 .facility-icon {
   background: none !important;
   border: none !important;
 }
 
+.facility-pin {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+}
+
+.facility-pin:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+  z-index: 9999 !important;
+}
+
 /* ============================================================
-   Leaflet MarkerCluster Overrides
+   Cluster Animation Overrides
    ============================================================ */
 
 .district-cluster-icon {
@@ -215,6 +329,50 @@
 .facility-cluster-icon {
   background: none !important;
   border: none !important;
+}
+
+.uganda-cluster {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.uganda-cluster:hover {
+  transform: scale(1.08);
+}
+
+.uganda-cluster-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: linear-gradient(135deg, #16a34a, #facc15, #dc2626) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: cluster-ring-rotate 4s linear infinite;
+}
+
+@keyframes cluster-ring-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.facility-cluster-ring {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #06b6d4, #0891b2, #0e7490) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
 }
 
 /* Override default markercluster styles */
@@ -245,7 +403,6 @@
   font-weight: 700 !important;
 }
 
-/* Cluster animation */
 .marker-cluster {
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
@@ -254,7 +411,234 @@
   transform: scale(1.05);
 }
 
-/* Custom scrollbar */
+/* ============================================================
+   Region Label Styles
+   ============================================================ */
+
+.region-label {
+  background: none !important;
+  border: none !important;
+}
+
+.region-label-inner {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Heat Zone Styles
+   ============================================================ */
+
+.heat-zone-circle {
+  transition: opacity 0.4s ease;
+}
+
+/* ============================================================
+   District Boundary Styles
+   ============================================================ */
+
+.district-boundary {
+  transition: fill-opacity 0.3s ease, weight 0.3s ease;
+  cursor: pointer;
+}
+
+.district-boundary:hover {
+  fill-opacity: 0.35 !important;
+}
+
+.district-boundary-label {
+  background: none !important;
+  border: none !important;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Popup Animation Styles
+   ============================================================ */
+
+.leaflet-popup {
+  animation: popup-appear 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popup-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.leaflet-popup-close-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.leaflet-popup:hover .leaflet-popup-close-button {
+  opacity: 1;
+}
+
+/* ============================================================
+   Tile Switcher Styles
+   ============================================================ */
+
+.tile-switcher-btn {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.tile-switcher-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #16a34a;
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.tile-switcher-btn.active::after {
+  transform: scaleX(1);
+}
+
+.tile-switcher-btn.active {
+  background: #f0fdf4;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Map Stats Bar
+   ============================================================ */
+
+.map-stats-bar {
+  animation: stats-slide-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes stats-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================
+   Custom Popup Content Styles
+   ============================================================ */
+
+.popup-header {
+  position: relative;
+  overflow: hidden;
+}
+
+.popup-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+.popup-stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: default;
+}
+
+.popup-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.popup-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 36px;
+}
+
+.popup-bar {
+  border-radius: 2px 2px 0 0;
+  min-width: 8px;
+  transition: height 0.3s ease;
+  position: relative;
+}
+
+.popup-bar:hover {
+  opacity: 0.8;
+}
+
+.popup-action-btn {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  outline: none;
+}
+
+.popup-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.popup-action-btn:active {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   Legend Enhanced Styles
+   ============================================================ */
+
+.legend-gradient-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #22c55e, #84cc16, #eab308, #f97316, #ef4444, #dc2626);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b7280;
+  padding: 2px 0;
+}
+
+.legend-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Custom Scrollbar
+   ============================================================ */
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
@@ -272,7 +656,10 @@
   background: #9ca3af;
 }
 
-/* Leaflet control overrides */
+/* ============================================================
+   Leaflet Control Overrides
+   ============================================================ */
+
 .leaflet-control-zoom {
   border: none !important;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1) !important;
@@ -315,7 +702,6 @@
    Uganda Theme Enhancements
    ============================================================ */
 
-/* Uganda flag gradient for special elements */
 .uganda-gradient {
   background: linear-gradient(
     180deg,
@@ -409,7 +795,6 @@
    Enhanced System Design
    ============================================================ */
 
-/* Beautiful gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #16a34a, #0891b2);
   -webkit-background-clip: text;
@@ -417,14 +802,12 @@
   background-clip: text;
 }
 
-/* Glassmorphism card */
 .glass-card {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Smooth page transitions */
 .page-transition-enter {
   opacity: 0;
   transform: translateY(8px);
@@ -435,7 +818,6 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Hover glow effect for interactive elements */
 .hover-glow {
   transition: box-shadow 0.3s ease;
 }
@@ -443,13 +825,11 @@
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
 }
 
-/* Focus ring enhancement */
 .focus-ring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.3), 0 0 0 4px rgba(22, 163, 74, 0.1);
 }
 
-/* Subtle noise texture overlay */
 .noise-overlay::before {
   content: '';
   position: absolute;
@@ -459,13 +839,11 @@
   pointer-events: none;
 }
 
-/* Animated gradient border */
 @keyframes gradient-rotate {
   0% { --gradient-angle: 0deg; }
   100% { --gradient-angle: 360deg; }
 }
 
-/* Status timeline dot animation */
 @keyframes status-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.2); opacity: 0.8; }
@@ -479,7 +857,6 @@
    Header & Navigation Enhancements
    ============================================================ */
 
-/* Animated shimmer for flag stripe */
 @keyframes shimmer-flag {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -490,7 +867,6 @@
   animation: shimmer-flag 3s ease-in-out infinite;
 }
 
-/* Notification badge pulse */
 @keyframes badge-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.15); }
@@ -504,7 +880,6 @@
    Mobile Bottom Navigation
    ============================================================ */
 
-/* Safe area for bottom nav on iOS */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -526,28 +901,41 @@
    Mobile Touch Optimizations
    ============================================================ */
 
-/* Smooth touch scrolling */
 @media (max-width: 767px) {
-  /* Ensure touch targets are at least 44px */
   button, a, [role="button"] {
     min-height: 44px;
   }
 
-  /* Smaller touch targets for badges/chips are ok */
   .min-h-0, [data-slot="badge"], span[role="button"] {
     min-height: auto;
   }
 
-  /* Improve scroll performance */
   .overflow-y-auto, .overflow-auto {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
 
-  /* Prevent text selection on interactive elements */
   button, nav, [role="tablist"] {
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* Smaller pins on mobile */
+  .uganda-pin svg {
+    transform: scale(0.8);
+  }
+
+  .uganda-pin:hover {
+    transform: scale(0.95) translateY(-2px);
+  }
+
+  /* Compact popups on mobile */
+  .leaflet-popup-content {
+    max-width: 240px !important;
+  }
+
+  .popup-stat-card {
+    padding: 4px !important;
   }
 }
 
@@ -555,7 +943,6 @@
    Detail Sheet / Drawer Enhancements
    ============================================================ */
 
-/* Smooth transitions for sheet content */
 [data-slot="sheet-content"] {
   overscroll-behavior: contain;
 }
@@ -568,7 +955,6 @@
    Responsive Utility Classes
    ============================================================ */
 
-/* Hide on mobile, show on desktop */
 @media (max-width: 767px) {
   .hide-mobile {
     display: none !important;
@@ -579,4 +965,40 @@
   .hide-desktop {
     display: none !important;
   }
+}
+
+/* ============================================================
+   Marker Entrance Animation
+   ============================================================ */
+
+@keyframes marker-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.marker-animate-in {
+  animation: marker-drop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ============================================================
+   Loading Skeleton for Map
+   ============================================================ */
+
+@keyframes map-skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.map-skeleton {
+  animation: map-skeleton-pulse 1.5s ease-in-out infinite;
 }

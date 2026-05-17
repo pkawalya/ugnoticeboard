@@ -86,9 +86,11 @@ function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
 
 interface FacilitiesPanelProps {
   districtFilter?: string
+  autoOpenId?: string | null
+  onDetailOpened?: () => void
 }
 
-export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
+export function FacilitiesPanel({ districtFilter, autoOpenId, onDetailOpened }: FacilitiesPanelProps) {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -137,6 +139,18 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
   useEffect(() => {
     fetchFacilities()
   }, [fetchFacilities])
+
+  // Auto-open facility detail when triggered from map popup
+  useEffect(() => {
+    if (autoOpenId && facilities.length > 0) {
+      const facility = facilities.find(f => f.id === autoOpenId)
+      if (facility) {
+        setSelectedFacility(facility)
+        setDetailOpen(true)
+        onDetailOpened?.()
+      }
+    }
+  }, [autoOpenId, facilities, onDetailOpened])
 
   const handleFacilityClick = (facility: Facility) => {
     setSelectedFacility(facility)

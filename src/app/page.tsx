@@ -311,6 +311,9 @@ export default function Home() {
     return () => document.removeEventListener('click', handler)
   }, [showNotifications])
 
+  const [autoOpenFacilityId, setAutoOpenFacilityId] = useState<string | null>(null)
+  const [showIssueForm, setShowIssueForm] = useState(false)
+
   const handleDistrictClick = useCallback((districtName: string) => {
     if (districtName) {
       setSelectedDistrict(districtName)
@@ -318,6 +321,19 @@ export default function Home() {
     } else {
       setSelectedDistrict('')
     }
+  }, [])
+
+  const handleReportIssue = useCallback((districtName: string) => {
+    if (districtName) {
+      setSelectedDistrict(districtName)
+    }
+    setActiveTab('issues')
+    setShowIssueForm(true)
+  }, [])
+
+  const handleViewFacility = useCallback((facilityId: string) => {
+    setActiveTab('facilities')
+    setAutoOpenFacilityId(facilityId)
   }, [])
 
   const handleTabChange = useCallback((tabId: TabId) => {
@@ -695,6 +711,8 @@ export default function Home() {
               <div className="h-full relative">
                 <UgandaMap
                   onDistrictClick={handleDistrictClick}
+                  onReportIssue={handleReportIssue}
+                  onViewFacility={handleViewFacility}
                   selectedDistrict={selectedDistrict}
                 />
               </div>
@@ -704,6 +722,8 @@ export default function Home() {
               <IssuesPanel
                 districtFilter={selectedDistrict}
                 onDistrictClear={() => setSelectedDistrict('')}
+                autoOpenForm={showIssueForm}
+                onFormOpened={() => setShowIssueForm(false)}
               />
             )}
 
@@ -716,7 +736,11 @@ export default function Home() {
             )}
 
             {activeTab === 'facilities' && (
-              <FacilitiesPanel districtFilter={selectedDistrict} />
+              <FacilitiesPanel
+                districtFilter={selectedDistrict}
+                autoOpenId={autoOpenFacilityId}
+                onDetailOpened={() => setAutoOpenFacilityId(null)}
+              />
             )}
 
             {activeTab === 'engagement' && (

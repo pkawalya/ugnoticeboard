@@ -83,3 +83,28 @@ Stage Summary:
 - All 34 facilities, 11 projects, 15 broadcasts have category-matched images
 - Lightbox supports zoom, navigation, download, thumbnails strip
 - Image upload component ready for forms integration
+
+---
+Task ID: fix-popover-actions
+Agent: Main Agent
+Task: Fix View Details and Report buttons on map popover
+
+Work Log:
+- Fixed stale closure issue in uganda-map-inner.tsx by using refs for callback props (onDistrictClickRef, onReportIssueRef, onViewFacilityRef)
+- Added onReportIssue and onViewFacility callback props to UgandaMapProps interface
+- Fixed report-issue event handling: now calls onReportIssue prop directly instead of re-dispatching dead event
+- Added facility-view event listener for facility popup button actions
+- Added "View Details →" and "📝 Report" action buttons to facility popups (matching district popup style)
+- Updated createFacilityPopup to accept facility.id and dispatch facility-view/report-issue events
+- Added autoOpenForm + onFormOpened props to IssuesPanel for auto-opening issue form from map
+- Added autoOpenId + onDetailOpened props to FacilitiesPanel for auto-opening facility detail from map
+- Updated page.tsx with handleReportIssue (switches to issues tab + opens form) and handleViewFacility (switches to facilities tab + opens detail)
+- Added escape handling for single quotes in popup onclick handlers
+- Build compiles successfully with 0 errors
+
+Stage Summary:
+- District popup "View Details" now uses ref-based callback (fixes stale closure)
+- District popup "Report" now works: switches to Issues tab + opens Report Issue form with district pre-filled
+- Facility popup now has "View Details" button: switches to Facilities tab + auto-opens that facility's detail sheet
+- Facility popup now has "Report" button: switches to Issues tab + opens Report Issue form
+- All popup buttons properly communicate from Leaflet HTML popups to React component tree via custom events + refs

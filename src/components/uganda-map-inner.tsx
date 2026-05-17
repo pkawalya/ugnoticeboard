@@ -367,6 +367,7 @@ function createDistrictPopup(
 }
 
 function createFacilityPopup(facility: {
+  id: string
   name: string
   type: string
   condition: string
@@ -388,6 +389,10 @@ function createFacilityPopup(facility: {
     ? `<img src="${facility.imageUrl}" alt="${facility.name}" style="width:100%;height:120px;object-fit:cover;border-radius:8px 8px 0 0;margin:-2px -2px 0;display:block;" />`
     : ''
 
+  // Escape single quotes for safe onclick handler
+  const safeId = facility.id.replace(/'/g, "\\'")
+  const safeCommunity = (facility.communityName || '').replace(/'/g, "\\'")
+
   return `
     <div style="min-width:200px;max-width:260px;font-family:system-ui,-apple-system,sans-serif;">
       ${imageHtml}
@@ -402,7 +407,7 @@ function createFacilityPopup(facility: {
           </div>
         </div>
       </div>
-      <div style="padding:12px 14px;">
+      <div style="padding:12px 14px 8px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <span style="background:${condStyle.bg};color:${condStyle.text};padding:3px 10px;border-radius:9999px;font-size:11px;text-transform:capitalize;font-weight:600;border:1px solid ${condStyle.border};">
             ${facility.condition}
@@ -415,7 +420,17 @@ function createFacilityPopup(facility: {
         </div>
         ${facility.communityName ? `<div style="font-size:11px;color:#64748b;margin-bottom:4px;">📍 ${facility.communityName}</div>` : ''}
         ${facility.services ? `<div style="font-size:11px;color:#64748b;margin-bottom:4px;">🔧 ${facility.services}</div>` : ''}
-        ${facility.contactInfo ? `<div style="font-size:11px;color:#64748b;">📞 ${facility.contactInfo}</div>` : ''}
+        ${facility.contactInfo ? `<div style="font-size:11px;color:#64748b;margin-bottom:4px;">📞 ${facility.contactInfo}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;padding:0 14px 12px;">
+        <button class="popup-action-btn" onclick="window.dispatchEvent(new CustomEvent('facility-view',{detail:'${safeId}'}))"
+          style="flex:1;padding:7px 12px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 2px 6px rgba(139,92,246,0.3);">
+          View Details →
+        </button>
+        <button class="popup-action-btn" onclick="window.dispatchEvent(new CustomEvent('report-issue',{detail:'${safeCommunity}'}))"
+          style="padding:7px 12px;background:white;color:#374151;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;">
+          📝 Report
+        </button>
       </div>
     </div>
   `
@@ -477,6 +492,8 @@ function mapFacilityFromApi(raw: Record<string, unknown>) {
 
 interface UgandaMapProps {
   onDistrictClick?: (districtName: string) => void
+  onReportIssue?: (districtName: string) => void
+  onViewFacility?: (facilityId: string) => void
   selectedDistrict?: string
   issues?: unknown[]
   showFacilities?: boolean
@@ -490,6 +507,8 @@ type LayerType = 'issues' | 'facilities' | 'projects' | 'broadcasts'
 
 export default function UgandaMap({
   onDistrictClick,
+  onReportIssue,
+  onViewFacility,
   selectedDistrict,
   showFacilities = true,
   showBroadcasts = true,
@@ -503,6 +522,16 @@ export default function UgandaMap({
   const heatZonesRef = useRef<L.LayerGroup>(L.layerGroup())
   const regionLabelsRef = useRef<L.LayerGroup>(L.layerGroup())
   const tileLayerRef = useRef<L.TileLayer | null>(null)
+
+  // Refs for callback props to avoid stale closures in event listeners
+  const onDistrictClickRef = useRef(onDistrictClick)
+  const onReportIssueRef = useRef(onReportIssue)
+  const onViewFacilityRef = useRef(onViewFacility)
+
+  // Keep refs up to date
+  onDistrictClickRef.current = onDistrictClick
+  onReportIssueRef.current = onReportIssue
+  onViewFacilityRef.current = onViewFacility
 
   const [activeLayers, setActiveLayers] = useState<Record<LayerType, boolean>>({
     issues: true,
@@ -936,23 +965,29 @@ export default function UgandaMap({
     })
     regionRectsRef.current.addTo(map)
 
-    // Listen for district click events from popup buttons
+    // Listen for custom events from popup buttons (using refs to avoid stale closures)
     const handleDistrictClick = (e: Event) => {
       const districtName = (e as CustomEvent).detail
-      onDistrictClick?.(districtName)
+      onDistrictClickRef.current?.(districtName)
     }
     window.addEventListener('district-click', handleDistrictClick)
 
-    // Listen for report issue events
     const handleReportIssue = (e: Event) => {
       const districtName = (e as CustomEvent).detail
-      window.dispatchEvent(new CustomEvent('report-issue-nav', { detail: districtName }))
+      onReportIssueRef.current?.(districtName)
     }
     window.addEventListener('report-issue', handleReportIssue)
+
+    const handleFacilityView = (e: Event) => {
+      const facilityId = (e as CustomEvent).detail
+      onViewFacilityRef.current?.(facilityId)
+    }
+    window.addEventListener('facility-view', handleFacilityView)
 
     return () => {
       window.removeEventListener('district-click', handleDistrictClick)
       window.removeEventListener('report-issue', handleReportIssue)
+      window.removeEventListener('facility-view', handleFacilityView)
       map.remove()
       mapInstanceRef.current = null
     }

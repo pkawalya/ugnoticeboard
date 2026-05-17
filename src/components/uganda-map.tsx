@@ -16,6 +16,8 @@ const UgandaMapInner = dynamic(() => import('./uganda-map-inner'), {
 
 interface UgandaMapProps {
   onDistrictClick?: (districtName: string) => void
+  onReportIssue?: (districtName: string) => void
+  onViewFacility?: (facilityId: string) => void
   selectedDistrict?: string
   issues?: unknown[]
   showFacilities?: boolean

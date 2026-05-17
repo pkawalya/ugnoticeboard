@@ -78,9 +78,11 @@ function mapIssueFromApi(raw: Record<string, unknown>): Issue {
 interface IssuesPanelProps {
   districtFilter?: string
   onDistrictClear?: () => void
+  autoOpenForm?: boolean
+  onFormOpened?: () => void
 }
 
-export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProps) {
+export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onFormOpened }: IssuesPanelProps) {
   const [showForm, setShowForm] = useState(false)
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -141,6 +143,14 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
   useEffect(() => {
     fetchIssues()
   }, [fetchIssues])
+
+  // Auto-open issue form when triggered from map popup
+  useEffect(() => {
+    if (autoOpenForm) {
+      setShowForm(true)
+      onFormOpened?.()
+    }
+  }, [autoOpenForm, onFormOpened])
 
   const handleVote = async (issueId: string) => {
     if (votingIds.has(issueId)) return

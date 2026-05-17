@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DISTRICTS, UGANDA_REGIONS } from '@/lib/uganda-data'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 import {
   Layers,
@@ -19,9 +20,9 @@ import {
   Radio,
   X,
   RefreshCw,
-  ZoomIn,
-  ZoomOut,
   Crosshair,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 
 // Fix Leaflet default icon issue
@@ -245,12 +246,14 @@ export default function UgandaMap({
     broadcasts: true,
   })
   const [showLegend, setShowLegend] = useState(true)
+  const [legendCollapsed, setLegendCollapsed] = useState(false)
   const [showControls, setShowControls] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   const [districtIssueCounts, setDistrictIssueCounts] = useState<Record<string, { issues: number; broadcasts: number; criticalIssues: number }>>({})
   const [facilities, setFacilities] = useState<{ id: string; name: string; type: string; condition: string; latitude: number | null; longitude: number | null; communityName: string | null; isOperational: boolean; services: string | null; contactInfo: string | null }[]>([])
+  const isMobile = useIsMobile()
 
   // Fetch data from APIs
   const fetchData = useCallback(async () => {
@@ -624,24 +627,24 @@ export default function UgandaMap({
         </div>
       )}
 
-      {/* Layer Control Panel */}
-      <div className="absolute right-3 top-3 z-[1000]">
+      {/* Layer Control Panel - Responsive */}
+      <div className={`absolute z-[1000] ${isMobile ? 'right-2 top-2' : 'right-3 top-3'}`}>
         <Button
           variant="outline"
-          size="sm"
-          className="bg-white/95 backdrop-blur-md shadow-lg border-0 hover:bg-white hover:shadow-xl transition-all"
+          size={isMobile ? 'sm' : 'sm'}
+          className="bg-white/95 backdrop-blur-md shadow-lg border-0 hover:bg-white hover:shadow-xl transition-all h-8 text-xs"
           onClick={() => setShowControls(!showControls)}
         >
-          <Layers className="mr-1.5 h-4 w-4 text-green-600" />
+          <Layers className={`mr-1 h-3.5 w-3.5 text-green-600`} />
           <span className="font-medium">Layers</span>
         </Button>
         {showControls && (
-          <Card className="mt-2 w-52 bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-green-700 px-4 py-2">
-              <h3 className="text-xs font-semibold text-white">Map Layers</h3>
+          <Card className={`mt-2 bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden ${isMobile ? 'w-44' : 'w-52'}`}>
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-3 py-1.5">
+              <h3 className="text-[10px] font-semibold text-white">Map Layers</h3>
             </div>
-            <CardContent className="p-3">
-              <div className="space-y-1.5">
+            <CardContent className="p-2">
+              <div className="space-y-1">
                 {([
                   { key: 'issues' as LayerType, label: 'Issues', icon: AlertTriangle, color: 'text-orange-600', activeBg: 'bg-orange-50' },
                   { key: 'facilities' as LayerType, label: 'Facilities', icon: Building2, color: 'text-cyan-600', activeBg: 'bg-cyan-50' },
@@ -651,21 +654,21 @@ export default function UgandaMap({
                   <button
                     key={layer.key}
                     onClick={() => toggleLayer(layer.key)}
-                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                       activeLayers[layer.key]
                         ? `${layer.activeBg} ${layer.color} shadow-sm`
                         : 'text-muted-foreground hover:bg-gray-50'
                     }`}
                   >
-                    <layer.icon className="h-4 w-4" />
+                    <layer.icon className="h-3.5 w-3.5" />
                     <span className="flex-1 text-left">{layer.label}</span>
-                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                    <div className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
                       activeLayers[layer.key]
                         ? 'border-green-600 bg-green-600'
                         : 'border-gray-300'
                     }`}>
                       {activeLayers[layer.key] && (
-                        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <svg className="h-2 w-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -678,49 +681,67 @@ export default function UgandaMap({
         )}
       </div>
 
-      {/* Legend */}
+      {/* Legend - Collapsible on mobile */}
       {showLegend && (
-        <Card className="absolute bottom-3 left-3 z-[1000] bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden">
-          <CardHeader className="p-3 pb-2 bg-gradient-to-r from-green-600 to-green-700">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-semibold text-white">Issue Density</CardTitle>
-              <button onClick={() => setShowLegend(false)} className="text-white/70 hover:text-white transition-colors">
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground font-medium">Low</span>
-              <div className="flex gap-0.5">
-                <div className="h-3 w-7 rounded-sm" style={{ backgroundColor: '#22c55e' }} />
-                <div className="h-3 w-7 rounded-sm" style={{ backgroundColor: '#ca8a04' }} />
-                <div className="h-3 w-7 rounded-sm" style={{ backgroundColor: '#ea580c' }} />
-                <div className="h-3 w-7 rounded-sm" style={{ backgroundColor: '#dc2626' }} />
-              </div>
-              <span className="text-[10px] text-muted-foreground font-medium">High</span>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-1.5">
-              {[
-                { emoji: '🏥', label: 'Hospital', color: '#ef4444' },
-                { emoji: '📚', label: 'School', color: '#3b82f6' },
-                { emoji: '🏛️', label: 'Police', color: '#8b5cf6' },
-                { emoji: '💧', label: 'Water', color: '#06b6d4' },
-              ].map((item) => (
-                <span key={item.label} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-4 w-4 rounded-full flex items-center justify-center text-[10px]" style={{ background: item.color + '20', border: `1px solid ${item.color}40` }}>
-                    {item.emoji}
+        <Card className={`absolute z-[1000] bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden transition-all ${isMobile ? 'bottom-14 left-2 max-w-[180px]' : 'bottom-3 left-3'}`}>
+          {legendCollapsed ? (
+            <button
+              onClick={() => setLegendCollapsed(false)}
+              className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronUp className="h-3 w-3" /> Legend
+            </button>
+          ) : (
+            <>
+              <CardHeader className={`${isMobile ? 'p-2 pb-1' : 'p-3 pb-2'} bg-gradient-to-r from-green-600 to-green-700`}>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[10px] font-semibold text-white">Issue Density</CardTitle>
+                  <div className="flex items-center gap-1">
+                    {isMobile && (
+                      <button onClick={() => setLegendCollapsed(true)} className="text-white/70 hover:text-white transition-colors">
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    )}
+                    <button onClick={() => setShowLegend(false)} className="text-white/70 hover:text-white transition-colors">
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
-                  <span className="text-[10px] text-muted-foreground font-medium">{item.label}</span>
-                </span>
-              ))}
-            </div>
-            <div className="mt-3 pt-2 border-t">
-              <p className="text-[10px] text-muted-foreground">
-                <span className="font-semibold text-green-600">Clusters</span> group nearby markers — click to expand
-              </p>
-            </div>
-          </CardContent>
+                </div>
+              </CardHeader>
+              <CardContent className={isMobile ? 'p-2' : 'p-3'}>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Low</span>
+                  <div className="flex gap-0.5">
+                    <div className="h-2.5 sm:h-3 w-5 sm:w-7 rounded-sm" style={{ backgroundColor: '#22c55e' }} />
+                    <div className="h-2.5 sm:h-3 w-5 sm:w-7 rounded-sm" style={{ backgroundColor: '#ca8a04' }} />
+                    <div className="h-2.5 sm:h-3 w-5 sm:w-7 rounded-sm" style={{ backgroundColor: '#ea580c' }} />
+                    <div className="h-2.5 sm:h-3 w-5 sm:w-7 rounded-sm" style={{ backgroundColor: '#dc2626' }} />
+                  </div>
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">High</span>
+                </div>
+                <div className={`mt-2 grid grid-cols-2 gap-1 ${isMobile ? '' : 'gap-1.5'}`}>
+                  {[
+                    { emoji: '🏥', label: 'Hospital', color: '#ef4444' },
+                    { emoji: '📚', label: 'School', color: '#3b82f6' },
+                    { emoji: '🏛️', label: 'Police', color: '#8b5cf6' },
+                    { emoji: '💧', label: 'Water', color: '#06b6d4' },
+                  ].map((item) => (
+                    <span key={item.label} className="flex items-center gap-1 text-xs">
+                      <div className={`flex items-center justify-center rounded-full ${isMobile ? 'h-3.5 w-3.5 text-[8px]' : 'h-4 w-4 text-[10px]'}`} style={{ background: item.color + '20', border: `1px solid ${item.color}40` }}>
+                        {item.emoji}
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">{item.label}</span>
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 pt-1.5 border-t">
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">
+                    <span className="font-semibold text-green-600">Clusters</span> group nearby markers
+                  </p>
+                </div>
+              </CardContent>
+            </>
+          )}
         </Card>
       )}
 
@@ -728,52 +749,55 @@ export default function UgandaMap({
         <Button
           variant="outline"
           size="sm"
-          className="absolute bottom-3 left-3 z-[1000] bg-white/95 backdrop-blur-md shadow-lg border-0 hover:bg-white"
-          onClick={() => setShowLegend(true)}
+          className={`absolute z-[1000] bg-white/95 backdrop-blur-md shadow-lg border-0 hover:bg-white ${isMobile ? 'bottom-14 left-2 h-7 text-[10px] px-2' : 'bottom-3 left-3'}`}
+          onClick={() => { setShowLegend(true); setLegendCollapsed(false) }}
         >
           Show Legend
         </Button>
       )}
 
-      {/* Live indicator with controls */}
-      <div className="absolute left-3 top-3 z-[1000] flex items-center gap-2">
-        <Badge variant="outline" className="bg-white/95 backdrop-blur-md shadow-lg border-0 text-green-700 font-medium px-3 py-1">
-          <span className="mr-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-green-500" />
+      {/* Live indicator with controls - Responsive */}
+      <div className={`absolute left-2 sm:left-3 top-2 sm:top-3 z-[1000] flex items-center gap-1.5 sm:gap-2`}>
+        <Badge variant="outline" className={`bg-white/95 backdrop-blur-md shadow-lg border-0 text-green-700 font-medium ${isMobile ? 'text-[9px] px-2 py-0.5' : 'px-3 py-1'}`}>
+          <span className="relative flex mr-1 h-1.5 w-1.5 sm:h-2 sm:w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-full w-full bg-green-500" />
+          </span>
           Live
         </Badge>
         <Button
           variant="outline"
           size="sm"
-          className="bg-white/95 backdrop-blur-md shadow-lg border-0 h-8 px-2.5 hover:bg-white"
+          className={`bg-white/95 backdrop-blur-md shadow-lg border-0 hover:bg-white ${isMobile ? 'h-7 w-7 p-0' : 'h-8 px-2.5'}`}
           onClick={fetchData}
           title={`Last refreshed: ${lastRefresh.toLocaleTimeString()}`}
         >
-          <RefreshCw className="h-3.5 w-3.5 text-green-600" />
+          <RefreshCw className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} text-green-600`} />
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="bg-white/95 backdrop-blur-md shadow-lg border-0 h-8 px-2.5 hover:bg-white"
+          className={`bg-white/95 backdrop-blur-md shadow-lg border-0 hover:bg-white ${isMobile ? 'h-7 w-7 p-0' : 'h-8 px-2.5'}`}
           onClick={resetView}
           title="Reset view"
         >
-          <Crosshair className="h-3.5 w-3.5 text-green-600" />
+          <Crosshair className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} text-green-600`} />
         </Button>
       </div>
 
-      {/* Selected district info */}
+      {/* Selected district info - Responsive */}
       {selectedDistrict && (
-        <Card className="absolute left-3 top-14 z-[1000] w-72 bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-600 to-green-700 px-4 py-3">
+        <Card className={`absolute left-2 sm:left-3 z-[1000] bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden ${isMobile ? 'top-10 w-56' : 'top-14 w-72'}`}>
+          <div className="bg-gradient-to-r from-green-600 to-green-700 px-3 sm:px-4 py-2 sm:py-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-white">{selectedDistrict}</h3>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/80 hover:text-white hover:bg-white/20" onClick={() => onDistrictClick?.('')}>
-                <X className="h-3.5 w-3.5" />
+              <h3 className={`font-semibold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>{selectedDistrict}</h3>
+              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-white/80 hover:text-white hover:bg-white/20" onClick={() => onDistrictClick?.('')}>
+                <X className="h-3 w-3" />
               </Button>
             </div>
           </div>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="p-2 sm:p-3">
+            <p className={`text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
               Showing data for <span className="font-semibold text-green-700">{selectedDistrict}</span> district
             </p>
           </CardContent>

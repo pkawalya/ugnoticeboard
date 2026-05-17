@@ -474,3 +474,109 @@
 .status-dot-active {
   animation: status-pulse 2s ease-in-out infinite;
 }
+
+/* ============================================================
+   Header & Navigation Enhancements
+   ============================================================ */
+
+/* Animated shimmer for flag stripe */
+@keyframes shimmer-flag {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-flag {
+  background-size: 200% 100%;
+  animation: shimmer-flag 3s ease-in-out infinite;
+}
+
+/* Notification badge pulse */
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.notification-badge {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   Mobile Bottom Navigation
+   ============================================================ */
+
+/* Safe area for bottom nav on iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================================
+   Horizontal Scroll Tabs (no scrollbar)
+   ============================================================ */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================
+   Mobile Touch Optimizations
+   ============================================================ */
+
+/* Smooth touch scrolling */
+@media (max-width: 767px) {
+  /* Ensure touch targets are at least 44px */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Smaller touch targets for badges/chips are ok */
+  .min-h-0, [data-slot="badge"], span[role="button"] {
+    min-height: auto;
+  }
+
+  /* Improve scroll performance */
+  .overflow-y-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent text selection on interactive elements */
+  button, nav, [role="tablist"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* ============================================================
+   Detail Sheet / Drawer Enhancements
+   ============================================================ */
+
+/* Smooth transitions for sheet content */
+[data-slot="sheet-content"] {
+  overscroll-behavior: contain;
+}
+
+[data-slot="drawer-content"] {
+  overscroll-behavior: contain;
+}
+
+/* ============================================================
+   Responsive Utility Classes
+   ============================================================ */
+
+/* Hide on mobile, show on desktop */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}

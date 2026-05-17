@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
@@ -17,17 +16,20 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CategoryBadge } from '@/components/category-badge'
+import { DetailSheet } from '@/components/detail-sheet'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { Facility } from '@/lib/types'
 import {
   Search,
   MapPin,
   Star,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   AlertTriangle,
   XCircle,
   Building2,
+  SlidersHorizontal,
+  ChevronRight,
+  X,
 } from 'lucide-react'
 
 type FacilityType = 'school' | 'hospital' | 'police_station' | 'water_point' | 'market' | 'road'
@@ -91,13 +93,16 @@ interface FacilitiesPanelProps {
 }
 
 export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [conditionFilter, setConditionFilter] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
   const [facilities, setFacilities] = useState<Facility[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   const fetchFacilities = useCallback(async () => {
     try {
@@ -137,59 +142,144 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
     fetchFacilities()
   }, [fetchFacilities])
 
+  const handleFacilityClick = (facility: Facility) => {
+    setSelectedFacility(facility)
+    setDetailOpen(true)
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-purple-50/50 via-violet-50/30 to-transparent p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-500 shadow-sm">
+      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-purple-50/50 via-violet-50/30 to-transparent p-3 sm:p-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-500 shadow-sm shrink-0">
             <Building2 className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Public Facilities</h2>
-            <p className="text-xs text-muted-foreground">Schools, hospitals, police stations, and more</p>
+            <h2 className="text-base sm:text-lg font-bold tracking-tight">Public Facilities</h2>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Schools, hospitals, police stations, and more</p>
           </div>
         </div>
 
+        {/* Search + Filter toggle */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
-            <Input placeholder="Search facilities..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white border-border/60 focus:border-purple-300 focus:ring-purple-200" />
+            <Input placeholder="Search facilities..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white border-border/60 focus:border-purple-300 focus:ring-purple-200 h-9 text-sm" />
           </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-32 h-9 text-xs bg-white">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="school">School</SelectItem>
-              <SelectItem value="hospital">Hospital</SelectItem>
-              <SelectItem value="police_station">Police</SelectItem>
-              <SelectItem value="water_point">Water</SelectItem>
-              <SelectItem value="market">Market</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={conditionFilter} onValueChange={setConditionFilter}>
-            <SelectTrigger className="w-32 h-9 text-xs bg-white">
-              <SelectValue placeholder="Condition" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Conditions</SelectItem>
-              <SelectItem value="excellent">Excellent</SelectItem>
-              <SelectItem value="good">Good</SelectItem>
-              <SelectItem value="fair">Fair</SelectItem>
-              <SelectItem value="poor">Poor</SelectItem>
-              <SelectItem value="non_functional">Non-functional</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`transition-all h-9 w-9 ${showFilters ? 'bg-purple-50 text-purple-700 border-purple-200' : 'hover:bg-purple-50'}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
         </div>
+
+        {/* Collapsible filters on mobile, inline on desktop */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="h-9 text-xs bg-white">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="school">School</SelectItem>
+                    <SelectItem value="hospital">Hospital</SelectItem>
+                    <SelectItem value="police_station">Police</SelectItem>
+                    <SelectItem value="water_point">Water</SelectItem>
+                    <SelectItem value="market">Market</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                  <SelectTrigger className="h-9 text-xs bg-white">
+                    <SelectValue placeholder="Condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Conditions</SelectItem>
+                    <SelectItem value="excellent">Excellent</SelectItem>
+                    <SelectItem value="good">Good</SelectItem>
+                    <SelectItem value="fair">Fair</SelectItem>
+                    <SelectItem value="poor">Poor</SelectItem>
+                    <SelectItem value="non_functional">Non-functional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Active filter pills */}
+              {(typeFilter !== 'all' || conditionFilter !== 'all') && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {typeFilter !== 'all' && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-purple-50 text-purple-700">
+                      Type: {typeFilter}
+                      <button onClick={() => setTypeFilter('all')}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {conditionFilter !== 'all' && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-purple-50 text-purple-700">
+                      Condition: {conditionFilter}
+                      <button onClick={() => setConditionFilter('all')}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => { setTypeFilter('all'); setConditionFilter('all') }}>
+                    Clear all
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop: always show inline filters */}
+        {!isMobile && !showFilters && (
+          <div className="flex gap-2">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-32 h-9 text-xs bg-white">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="school">School</SelectItem>
+                <SelectItem value="hospital">Hospital</SelectItem>
+                <SelectItem value="police_station">Police</SelectItem>
+                <SelectItem value="water_point">Water</SelectItem>
+                <SelectItem value="market">Market</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={conditionFilter} onValueChange={setConditionFilter}>
+              <SelectTrigger className="w-32 h-9 text-xs bg-white">
+                <SelectValue placeholder="Condition" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Conditions</SelectItem>
+                <SelectItem value="excellent">Excellent</SelectItem>
+                <SelectItem value="good">Good</SelectItem>
+                <SelectItem value="fair">Fair</SelectItem>
+                <SelectItem value="poor">Poor</SelectItem>
+                <SelectItem value="non_functional">Non-functional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="space-y-3 p-4">
+        <div className="space-y-3 p-3 sm:p-4">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <Card key={i} className="border-border/40">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <Skeleton className="h-5 w-16 rounded-full" />
@@ -217,19 +307,17 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
               return (
                 <motion.div key={facility.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
                   <Card
-                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-purple-200 ${
-                      expandedId === facility.id ? 'ring-2 ring-purple-200 border-purple-200 shadow-sm' : ''
-                    }`}
-                    onClick={() => setExpandedId(expandedId === facility.id ? null : facility.id)}
+                    className="cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-purple-200 active:scale-[0.99]"
+                    onClick={() => handleFacilityClick(facility)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2.5 mb-1.5">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 border border-purple-100 text-sm">
+                          <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
+                            <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 border border-purple-100 text-xs sm:text-sm">
                               {typeIcons[facility.type] || '📍'}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                                 <CategoryBadge category={facility.type} />
                                 <Badge className={`text-[10px] font-semibold ${condConfig.bgColor} ${condConfig.color} border-0`}>
@@ -242,58 +330,23 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
                                   <Badge variant="destructive" className="text-[10px]">Not Operational</Badge>
                                 )}
                               </div>
-                              <h3 className="font-semibold text-sm leading-tight">{facility.name}</h3>
+                              <h3 className="font-semibold text-sm leading-tight truncate">{facility.name}</h3>
                             </div>
                           </div>
                           {facility.communityName && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 ml-10">
-                              <MapPin className="h-3 w-3 text-green-500" /> {facility.communityName}
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 ml-9">
+                              <MapPin className="h-3 w-3 text-green-500 shrink-0" /> <span className="truncate">{facility.communityName}</span>
                             </p>
                           )}
                         </div>
-                        {expandedId === facility.id ? (
-                          <ChevronUp className="h-4 w-4 text-purple-600 shrink-0 mt-1" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-1" />
-                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
                       </div>
 
                       {facility.averageRating != null && facility.averageRating > 0 && (
-                        <div className="mt-2 ml-10">
+                        <div className="mt-2 ml-9">
                           <StarRating rating={facility.averageRating} />
                         </div>
                       )}
-
-                      <AnimatePresence>
-                        {expandedId === facility.id && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <Separator className="my-3 bg-border/50" />
-                            <div className="space-y-2 ml-10">
-                              {facility.services && (
-                                <div>
-                                  <span className="text-xs font-semibold">Services: </span>
-                                  <span className="text-xs text-muted-foreground">{facility.services}</span>
-                                </div>
-                              )}
-                              {facility.capacity && (
-                                <div>
-                                  <span className="text-xs font-semibold">Capacity: </span>
-                                  <span className="text-xs text-muted-foreground">{facility.capacity.toLocaleString()}</span>
-                                </div>
-                              )}
-                              {facility.contactInfo && (
-                                <div>
-                                  <span className="text-xs font-semibold">Contact: </span>
-                                  <span className="text-xs text-muted-foreground">{facility.contactInfo}</span>
-                                </div>
-                              )}
-                              <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700 hover:bg-purple-50">
-                                <Star className="mr-1 h-3 w-3" /> Rate & Review
-                              </Button>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -310,6 +363,14 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
           )}
         </div>
       </ScrollArea>
+
+      {/* Detail Sheet */}
+      <DetailSheet
+        type="facility"
+        data={selectedFacility}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   )
 }

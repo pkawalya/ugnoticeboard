@@ -18,11 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CategoryBadge } from '@/components/category-badge'
+import { DetailSheet } from '@/components/detail-sheet'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { Project } from '@/lib/types'
 import {
   Search,
-  ChevronDown,
-  ChevronUp,
   MapPin,
   DollarSign,
   Calendar,
@@ -32,6 +32,9 @@ import {
   AlertCircle,
   PauseCircle,
   HardHat,
+  SlidersHorizontal,
+  ChevronRight,
+  X,
 } from 'lucide-react'
 
 type ProjectCategory = 'infrastructure' | 'health' | 'education' | 'water' | 'agriculture'
@@ -87,13 +90,16 @@ interface ProjectsPanelProps {
 }
 
 export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -133,58 +139,142 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
     fetchProjects()
   }, [fetchProjects])
 
+  const handleProjectClick = (project: Project) => {
+    setSelectedProject(project)
+    setDetailOpen(true)
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-transparent p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-yellow-500 shadow-sm">
+      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-transparent p-3 sm:p-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-yellow-500 shadow-sm shrink-0">
             <HardHat className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Public Projects</h2>
-            <p className="text-xs text-muted-foreground">Track government and community projects</p>
+            <h2 className="text-base sm:text-lg font-bold tracking-tight">Public Projects</h2>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Track government and community projects</p>
           </div>
         </div>
 
+        {/* Search + Filter toggle */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
-            <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white border-border/60 focus:border-amber-300 focus:ring-amber-200" />
+            <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white border-border/60 focus:border-amber-300 focus:ring-amber-200 h-9 text-sm" />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 h-9 text-xs bg-white">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="planned">Planned</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="stalled">Stalled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-32 h-9 text-xs bg-white">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="infrastructure">Infrastructure</SelectItem>
-              <SelectItem value="health">Health</SelectItem>
-              <SelectItem value="education">Education</SelectItem>
-              <SelectItem value="water">Water</SelectItem>
-              <SelectItem value="agriculture">Agriculture</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`transition-all h-9 w-9 ${showFilters ? 'bg-amber-50 text-amber-700 border-amber-200' : 'hover:bg-amber-50'}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
         </div>
+
+        {/* Desktop: inline filters | Mobile: collapsible */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-9 text-xs bg-white">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="planned">Planned</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="stalled">Stalled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-9 text-xs bg-white">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                    <SelectItem value="health">Health</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="water">Water</SelectItem>
+                    <SelectItem value="agriculture">Agriculture</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Active filter pills */}
+              {(statusFilter !== 'all' || categoryFilter !== 'all') && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {statusFilter !== 'all' && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-amber-50 text-amber-700">
+                      Status: {statusFilter}
+                      <button onClick={() => setStatusFilter('all')}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {categoryFilter !== 'all' && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-amber-50 text-amber-700">
+                      Category: {categoryFilter}
+                      <button onClick={() => setCategoryFilter('all')}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => { setStatusFilter('all'); setCategoryFilter('all') }}>
+                    Clear all
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop: always show inline filters */}
+        {!isMobile && !showFilters && (
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32 h-9 text-xs bg-white">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="planned">Planned</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="stalled">Stalled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-32 h-9 text-xs bg-white">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                <SelectItem value="health">Health</SelectItem>
+                <SelectItem value="education">Education</SelectItem>
+                <SelectItem value="water">Water</SelectItem>
+                <SelectItem value="agriculture">Agriculture</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="space-y-3 p-4">
+        <div className="space-y-3 p-3 sm:p-4">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <Card key={i} className="border-border/40">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <Skeleton className="h-5 w-20 rounded-full" />
@@ -214,17 +304,14 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
             projects.map((project, index) => {
               const config = statusConfig[project.status] || statusConfig.planned
               const StatusIcon = config.icon
-              const budgetPercent = project.budgetAllocated > 0 ? Math.round((project.budgetSpent / project.budgetAllocated) * 100) : 0
 
               return (
                 <motion.div key={project.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
                   <Card
-                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-amber-200 ${
-                      expandedId === project.id ? 'ring-2 ring-amber-200 border-amber-200 shadow-sm' : ''
-                    }`}
-                    onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
+                    className="cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-amber-200 active:scale-[0.99]"
+                    onClick={() => handleProjectClick(project)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
@@ -237,15 +324,11 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
                           <h3 className="font-semibold text-sm leading-tight">{project.name}</h3>
                           {project.communityName && (
                             <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-green-500" /> {project.communityName}
+                              <MapPin className="h-3 w-3 text-green-500 shrink-0" /> <span className="truncate">{project.communityName}</span>
                             </p>
                           )}
                         </div>
-                        {expandedId === project.id ? (
-                          <ChevronUp className="h-4 w-4 text-amber-600 shrink-0" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
                       </div>
 
                       {/* Progress Bar */}
@@ -254,73 +337,20 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
                           <span className="text-muted-foreground font-medium">Progress</span>
                           <span className="font-bold text-green-700">{project.progressPercent}%</span>
                         </div>
-                        <Progress value={project.progressPercent} className="h-2.5" />
+                        <Progress value={project.progressPercent} className="h-2" />
                       </div>
 
                       {/* Budget Summary */}
                       <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-2.5">
+                        <div className="rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-2">
                           <span className="text-green-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Allocated</span>
-                          <span className="font-bold text-green-800 text-sm">{formatCurrency(project.budgetAllocated)}</span>
+                          <span className="font-bold text-green-800 text-xs sm:text-sm">{formatCurrency(project.budgetAllocated)}</span>
                         </div>
-                        <div className="rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 p-2.5">
+                        <div className="rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 p-2">
                           <span className="text-amber-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Spent</span>
-                          <span className="font-bold text-amber-800 text-sm">{formatCurrency(project.budgetSpent)}</span>
+                          <span className="font-bold text-amber-800 text-xs sm:text-sm">{formatCurrency(project.budgetSpent)}</span>
                         </div>
                       </div>
-
-                      {/* Expanded Content */}
-                      <AnimatePresence>
-                        {expandedId === project.id && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <Separator className="my-3 bg-border/50" />
-                            <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{project.description}</p>
-
-                            <div className="mb-3 rounded-xl border border-border/40 p-3">
-                              <h4 className="text-xs font-bold mb-2">Budget Breakdown</h4>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="h-4 rounded-md bg-gradient-to-r from-green-400 to-green-500" style={{ width: `${100 - budgetPercent}%`, minWidth: '4px' }} />
-                                  <span className="text-xs text-muted-foreground">Remaining: {formatCurrency(project.budgetAllocated - project.budgetSpent)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="h-4 rounded-md bg-gradient-to-r from-amber-400 to-yellow-500" style={{ width: `${budgetPercent}%`, minWidth: '4px' }} />
-                                  <span className="text-xs text-muted-foreground">Spent: {formatCurrency(project.budgetSpent)} ({budgetPercent}%)</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {project.milestones && project.milestones.length > 0 && (
-                              <div className="mb-3">
-                                <h4 className="text-xs font-bold mb-2">Milestones</h4>
-                                <div className="space-y-1.5">
-                                  {project.milestones.map((milestone) => (
-                                    <div key={milestone.id} className="flex items-center gap-2 text-xs">
-                                      {milestone.status === 'completed' ? (
-                                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                                      ) : milestone.status === 'in_progress' ? (
-                                        <TrendingUp className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                                      ) : (
-                                        <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      )}
-                                      <span className={milestone.status === 'completed' ? 'line-through text-muted-foreground' : 'font-medium'}>
-                                        {milestone.title}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {project.startDate && project.endDate && (
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Start: {new Date(project.startDate).toLocaleDateString()}</span>
-                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> End: {new Date(project.endDate).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -338,6 +368,14 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
           )}
         </div>
       </ScrollArea>
+
+      {/* Detail Sheet */}
+      <DetailSheet
+        type="project"
+        data={selectedProject}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   )
 }

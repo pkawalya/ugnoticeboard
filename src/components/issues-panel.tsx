@@ -16,27 +16,26 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { StatusBadge } from '@/components/status-badge'
 import { SeverityIndicator } from '@/components/severity-indicator'
 import { CategoryBadge } from '@/components/category-badge'
 import { IssueForm } from '@/components/issue-form'
+import { DetailSheet } from '@/components/detail-sheet'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { Issue, IssueFilters, IssueCategory, IssueSeverity, IssueStatus } from '@/lib/types'
 import { ISSUE_CATEGORIES, DISTRICTS } from '@/lib/uganda-data'
 import {
   Plus,
   Search,
-  Filter,
   ChevronDown,
-  ChevronUp,
   ThumbsUp,
-  ArrowUpCircle,
   MessageSquare,
   Eye,
   Clock,
   MapPin,
   AlertTriangle,
   SlidersHorizontal,
+  X,
 } from 'lucide-react'
 
 function mapIssueFromApi(raw: Record<string, unknown>): Issue {
@@ -79,7 +78,8 @@ interface IssuesPanelProps {
 
 export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProps) {
   const [showForm, setShowForm] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<IssueFilters>({})
   const [showFilters, setShowFilters] = useState(false)
@@ -87,6 +87,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set())
+  const isMobile = useIsMobile()
 
   const fetchIssues = useCallback(async () => {
     try {
@@ -148,6 +149,10 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
         setIssues(prev => prev.map(issue =>
           issue.id === issueId ? { ...issue, voteCount: issue.voteCount + 1 } : issue
         ))
+        // Update selected issue if it's the one being voted on
+        if (selectedIssue?.id === issueId) {
+          setSelectedIssue(prev => prev ? { ...prev, voteCount: prev.voteCount + 1 } : null)
+        }
       }
     } catch (err) {
       console.error('Error voting:', err)
@@ -160,43 +165,49 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
     }
   }
 
+  const handleIssueClick = (issue: Issue) => {
+    setSelectedIssue(issue)
+    setDetailOpen(true)
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-orange-50/50 via-amber-50/30 to-transparent p-4">
+      <div className="flex flex-col gap-3 border-b bg-gradient-to-r from-orange-50/50 via-amber-50/30 to-transparent p-3 sm:p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 shadow-sm shrink-0">
               <AlertTriangle className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold tracking-tight">Civic Issues</h2>
+              <h2 className="text-base sm:text-lg font-bold tracking-tight">Civic Issues</h2>
               {districtFilter ? (
                 <div className="mt-0.5 flex items-center gap-2">
-                  <Badge variant="secondary" className="gap-1 bg-green-50 text-green-700 border-green-200">
+                  <Badge variant="secondary" className="gap-1 bg-green-50 text-green-700 border-green-200 text-[10px]">
                     <MapPin className="h-3 w-3" />
                     {districtFilter}
                   </Badge>
-                  <Button variant="ghost" size="sm" className="h-5 text-xs hover:bg-green-50 hover:text-green-700" onClick={onDistrictClear}>
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] hover:bg-green-50 hover:text-green-700" onClick={onDistrictClear}>
                     Clear
                   </Button>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Report and track community issues</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Report and track community issues</p>
               )}
             </div>
           </div>
           <Button
             onClick={() => setShowForm(true)}
             size="sm"
-            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm shadow-green-600/20"
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-sm shadow-green-600/20 h-9"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Report Issue
+            <span className="hidden sm:inline">Report Issue</span>
+            <span className="sm:hidden">Report</span>
           </Button>
         </div>
 
-        {/* Search */}
+        {/* Search + Filter button */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
@@ -204,20 +215,20 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
               placeholder="Search issues..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white border-border/60 focus:border-green-300 focus:ring-green-200"
+              className="pl-9 bg-white border-border/60 focus:border-green-300 focus:ring-green-200 h-9 text-sm"
             />
           </div>
           <Button
             variant="outline"
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={`transition-all ${showFilters ? 'bg-green-50 text-green-700 border-green-200' : 'hover:bg-green-50'}`}
+            className={`transition-all h-9 w-9 ${showFilters ? 'bg-green-50 text-green-700 border-green-200' : 'hover:bg-green-50'}`}
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Filters */}
+        {/* Filters - Responsive: 1 col on mobile, 3 on desktop */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -226,9 +237,9 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Select value={filters.status || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, status: v === 'all' ? undefined : v as IssueStatus }))}>
-                  <SelectTrigger className="h-8 text-xs bg-white">
+                  <SelectTrigger className="h-9 text-xs bg-white">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -243,7 +254,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                 </Select>
 
                 <Select value={filters.category || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, category: v === 'all' ? undefined : v as IssueCategory }))}>
-                  <SelectTrigger className="h-8 text-xs bg-white">
+                  <SelectTrigger className="h-9 text-xs bg-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -257,7 +268,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                 </Select>
 
                 <Select value={filters.severity || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, severity: v === 'all' ? undefined : v as IssueSeverity }))}>
-                  <SelectTrigger className="h-8 text-xs bg-white">
+                  <SelectTrigger className="h-9 text-xs bg-white">
                     <SelectValue placeholder="Severity" />
                   </SelectTrigger>
                   <SelectContent>
@@ -269,12 +280,44 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                   </SelectContent>
                 </Select>
               </div>
+              {/* Active filter pills on mobile */}
+              {(filters.status || filters.category || filters.severity) && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {filters.status && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-green-50 text-green-700">
+                      Status: {filters.status}
+                      <button onClick={() => setFilters(f => ({ ...f, status: undefined }))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.category && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-green-50 text-green-700">
+                      Category: {filters.category}
+                      <button onClick={() => setFilters(f => ({ ...f, category: undefined }))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.severity && (
+                    <Badge variant="secondary" className="gap-1 text-[10px] bg-green-50 text-green-700">
+                      Severity: {filters.severity}
+                      <button onClick={() => setFilters(f => ({ ...f, severity: undefined }))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => setFilters({})}>
+                    Clear all
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-0.5 font-medium">
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-0.5 font-medium text-[10px] sm:text-xs">
             {issues.length} issues found
           </span>
         </div>
@@ -282,11 +325,11 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
 
       {/* Issue List */}
       <ScrollArea className="flex-1">
-        <div className="space-y-2 p-4">
+        <div className="space-y-2 p-3 sm:p-4">
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="border-border/40">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <Skeleton className="h-5 w-16 rounded-full" />
@@ -322,12 +365,10 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                 transition={{ duration: 0.2, delay: index * 0.03 }}
               >
                 <Card
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-green-200 ${
-                    expandedId === issue.id ? 'ring-2 ring-green-200 border-green-200 shadow-sm' : ''
-                  }`}
-                  onClick={() => setExpandedId(expandedId === issue.id ? null : issue.id)}
+                  className="cursor-pointer transition-all duration-200 hover:shadow-md border-border/40 hover:border-green-200 active:scale-[0.99]"
+                  onClick={() => handleIssueClick(issue)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
@@ -338,21 +379,16 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                         <h3 className="font-semibold text-sm leading-tight">{issue.title}</h3>
                         {issue.communityName && (
                           <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-green-500" />
-                            {issue.communityName} {issue.location && <span className="text-muted-foreground/60">· {issue.location}</span>}
+                            <MapPin className="h-3 w-3 text-green-500 shrink-0" />
+                            <span className="truncate">{issue.communityName}</span>
+                            {issue.location && <span className="text-muted-foreground/60 hidden sm:inline">· {issue.location}</span>}
                           </p>
                         )}
                       </div>
-                      <div className="shrink-0 mt-1">
-                        {expandedId === issue.id ? (
-                          <ChevronUp className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground/50" />
-                        )}
-                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
                     </div>
 
-                    <div className="mt-2.5 flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="mt-2.5 flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1 hover:text-green-600 transition-colors">
                         <ThumbsUp className="h-3 w-3" /> {issue.voteCount}
                       </span>
@@ -364,49 +400,10 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                       </span>
                       <span className="ml-auto flex items-center gap-1 text-muted-foreground/60">
                         <Clock className="h-3 w-3" />
-                        {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
+                        <span className="hidden sm:inline">{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}</span>
+                        <span className="sm:hidden">{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true }).replace('about ', '').replace(' minutes', 'm').replace(' minute', 'm').replace(' hours', 'h').replace(' hour', 'h').replace(' days', 'd').replace(' day', 'd')}</span>
                       </span>
                     </div>
-
-                    {/* Expanded content */}
-                    <AnimatePresence>
-                      {expandedId === issue.id && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <Separator className="my-3 bg-border/50" />
-                          <p className="text-sm text-muted-foreground leading-relaxed mb-3">{issue.description}</p>
-                          {issue.reportedByName && (
-                            <p className="text-xs text-muted-foreground mb-3">
-                              Reported by: <span className="font-semibold text-foreground">{issue.isAnonymous ? 'Anonymous' : issue.reportedByName}</span>
-                            </p>
-                          )}
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs border-green-200 text-green-700 hover:bg-green-50"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleVote(issue.id)
-                              }}
-                              disabled={votingIds.has(issue.id)}
-                            >
-                              <ThumbsUp className="mr-1 h-3 w-3" /> Vote
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs border-orange-200 text-orange-700 hover:bg-orange-50">
-                              <ArrowUpCircle className="mr-1 h-3 w-3" /> Escalate
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50">
-                              <MessageSquare className="mr-1 h-3 w-3" /> Comment
-                            </Button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -429,6 +426,16 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
 
       {/* Issue Form Dialog */}
       <IssueForm open={showForm} onOpenChange={setShowForm} onSubmitted={fetchIssues} />
+
+      {/* Detail Sheet */}
+      <DetailSheet
+        type="issue"
+        data={selectedIssue}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onVote={handleVote}
+        voting={selectedIssue ? votingIds.has(selectedIssue.id) : false}
+      />
     </div>
   )
 }

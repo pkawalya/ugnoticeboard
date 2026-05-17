@@ -9,18 +9,17 @@ import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { Petition, Poll } from '@/lib/types'
 import {
   FileText,
   BarChart3,
-  Calendar,
   ThumbsUp,
   Users,
   MapPin,
-  Clock,
-  CheckCircle,
   HandHeart,
   Heart,
+  ChevronRight,
 } from 'lucide-react'
 
 type PetitionStatus = 'active' | 'closed' | 'responded'
@@ -84,6 +83,7 @@ export function EngagementPanel() {
   const [polls, setPolls] = useState<Poll[]>([])
   const [isLoadingPetitions, setIsLoadingPetitions] = useState(true)
   const [isLoadingPolls, setIsLoadingPolls] = useState(true)
+  const isMobile = useIsMobile()
 
   const fetchPetitions = useCallback(async () => {
     try {
@@ -120,28 +120,29 @@ export function EngagementPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b bg-gradient-to-r from-rose-50/50 via-pink-50/30 to-transparent p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 shadow-sm">
+      {/* Header */}
+      <div className="border-b bg-gradient-to-r from-rose-50/50 via-pink-50/30 to-transparent p-3 sm:p-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 shadow-sm shrink-0">
             <Heart className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Community Engagement</h2>
-            <p className="text-xs text-muted-foreground">Participate in petitions, polls, and volunteer events</p>
+            <h2 className="text-base sm:text-lg font-bold tracking-tight">Community Engagement</h2>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Petitions, polls, and volunteer events</p>
           </div>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1 flex-col">
-        <div className="border-b px-4">
-          <TabsList className="h-9 w-full justify-start bg-muted/30 p-1">
-            <TabsTrigger value="petitions" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+        <div className="border-b px-3 sm:px-4">
+          <TabsList className="h-9 w-full justify-start bg-muted/30 p-1 no-scrollbar overflow-x-auto">
+            <TabsTrigger value="petitions" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm shrink-0">
               <FileText className="h-3.5 w-3.5" /> Petitions
             </TabsTrigger>
-            <TabsTrigger value="polls" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsTrigger value="polls" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm shrink-0">
               <BarChart3 className="h-3.5 w-3.5" /> Polls
             </TabsTrigger>
-            <TabsTrigger value="volunteer" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsTrigger value="volunteer" className="gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm shrink-0">
               <HandHeart className="h-3.5 w-3.5" /> Volunteer
             </TabsTrigger>
           </TabsList>
@@ -149,11 +150,11 @@ export function EngagementPanel() {
 
         <TabsContent value="petitions" className="flex-1 m-0">
           <ScrollArea className="h-full">
-            <div className="space-y-3 p-4">
+            <div className="space-y-2 sm:space-y-3 p-3 sm:p-4">
               {isLoadingPetitions ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <Card key={i} className="border-border/40">
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
                         <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
                         <div className="space-y-2 flex-1">
@@ -180,40 +181,44 @@ export function EngagementPanel() {
                     : 0
                   return (
                     <motion.div key={petition.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-                      <Card className="border-border/40 transition-all duration-200 hover:shadow-md">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-sm">
-                              <FileText className="h-4 w-4 text-white" />
+                      <Card className="border-border/40 transition-all duration-200 hover:shadow-md cursor-pointer active:scale-[0.99]">
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-start gap-2.5 sm:gap-3">
+                            <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-sm">
+                              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Badge variant={petition.status === 'active' ? 'default' : 'secondary'} className={`text-[10px] mb-1 font-semibold ${petition.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}`}>
-                                {petition.status}
-                              </Badge>
-                              <h3 className="font-semibold text-sm">{petition.title}</h3>
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge variant={petition.status === 'active' ? 'default' : 'secondary'} className={`text-[10px] font-semibold ${petition.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}`}>
+                                  {petition.status}
+                                </Badge>
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+                              </div>
+                              <h3 className="font-semibold text-sm mt-1 leading-tight">{petition.title}</h3>
                               <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">{petition.description}</p>
                               {petition.communityName && (
-                                <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                                  <MapPin className="h-3 w-3 text-green-500" /> {petition.communityName}
+                                <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3 text-green-500 shrink-0" />
+                                  <span className="truncate">{petition.communityName}</span>
                                 </p>
                               )}
 
                               <div className="mt-3">
                                 <div className="flex items-center justify-between text-xs mb-1.5">
-                                  <span className="flex items-center gap-1 font-medium"><ThumbsUp className="h-3 w-3 text-green-600" /> {petition.signatureCount || 0} signatures</span>
-                                  <span className="text-muted-foreground font-medium">{progress}% of {petition.targetSignatureCount}</span>
+                                  <span className="flex items-center gap-1 font-medium"><ThumbsUp className="h-3 w-3 text-green-600" /> {petition.signatureCount || 0}</span>
+                                  <span className="text-muted-foreground font-medium text-[10px] sm:text-xs">{progress}% of {petition.targetSignatureCount}</span>
                                 </div>
-                                <Progress value={progress} className="h-2" />
+                                <Progress value={progress} className="h-1.5 sm:h-2" />
                               </div>
 
                               {petition.officialResponse && (
-                                <div className="mt-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 p-2.5">
-                                  <p className="text-xs font-semibold text-green-700">Official Response:</p>
-                                  <p className="text-xs text-green-600 mt-0.5">{petition.officialResponse}</p>
+                                <div className="mt-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 p-2 sm:p-2.5">
+                                  <p className="text-[10px] sm:text-xs font-semibold text-green-700">Official Response:</p>
+                                  <p className="text-[10px] sm:text-xs text-green-600 mt-0.5 line-clamp-2">{petition.officialResponse}</p>
                                 </div>
                               )}
 
-                              <Button size="sm" variant="outline" className="h-7 text-xs mt-2 border-green-200 text-green-700 hover:bg-green-50">
+                              <Button size="sm" variant="outline" className="h-8 text-xs mt-2 border-green-200 text-green-700 hover:bg-green-50 min-h-[44px]">
                                 <ThumbsUp className="mr-1 h-3 w-3" /> Sign Petition
                               </Button>
                             </div>
@@ -230,11 +235,11 @@ export function EngagementPanel() {
 
         <TabsContent value="polls" className="flex-1 m-0">
           <ScrollArea className="h-full">
-            <div className="space-y-3 p-4">
+            <div className="space-y-2 sm:space-y-3 p-3 sm:p-4">
               {isLoadingPolls ? (
                 Array.from({ length: 2 }).map((_, i) => (
                   <Card key={i} className="border-border/40">
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
                         <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
                         <div className="space-y-2 flex-1">
@@ -259,34 +264,37 @@ export function EngagementPanel() {
                   const totalVotes = poll.totalVotes || poll.options.reduce((sum, o) => sum + o.voteCount, 0)
                   return (
                     <motion.div key={poll.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-                      <Card className="border-border/40 transition-all duration-200 hover:shadow-md">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
-                              <BarChart3 className="h-4 w-4 text-white" />
+                      <Card className="border-border/40 transition-all duration-200 hover:shadow-md cursor-pointer active:scale-[0.99]">
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-start gap-2.5 sm:gap-3">
+                            <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
+                              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Badge variant={poll.status === 'active' ? 'default' : 'secondary'} className={`text-[10px] mb-1 font-semibold ${poll.status === 'active' ? 'bg-blue-100 text-blue-700 border-blue-200' : ''}`}>
-                                {poll.status}
-                              </Badge>
-                              <h3 className="font-semibold text-sm">{poll.title}</h3>
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge variant={poll.status === 'active' ? 'default' : 'secondary'} className={`text-[10px] font-semibold ${poll.status === 'active' ? 'bg-blue-100 text-blue-700 border-blue-200' : ''}`}>
+                                  {poll.status}
+                                </Badge>
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+                              </div>
+                              <h3 className="font-semibold text-sm mt-1 leading-tight">{poll.title}</h3>
                               {poll.description && (
-                                <p className="mt-0.5 text-xs text-muted-foreground">{poll.description}</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{poll.description}</p>
                               )}
-                              <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                              <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                                 <Users className="h-3 w-3" /> {totalVotes} votes
                               </p>
 
-                              <div className="mt-3 space-y-2.5">
+                              <div className="mt-3 space-y-2 sm:space-y-2.5">
                                 {poll.options.map((option) => {
                                   const percent = totalVotes > 0 ? Math.round((option.voteCount / totalVotes) * 100) : 0
                                   return (
                                     <div key={option.id} className="space-y-1">
                                       <div className="flex items-center justify-between text-xs">
-                                        <span className="font-medium">{option.text}</span>
-                                        <span className="text-muted-foreground">{percent}% ({option.voteCount})</span>
+                                        <span className="font-medium truncate mr-2">{option.text}</span>
+                                        <span className="text-muted-foreground shrink-0 text-[10px] sm:text-xs">{percent}% ({option.voteCount})</span>
                                       </div>
-                                      <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
+                                      <div className="h-1.5 sm:h-2 rounded-full bg-muted/50 overflow-hidden">
                                         <motion.div
                                           className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
                                           initial={{ width: 0 }}
@@ -299,7 +307,7 @@ export function EngagementPanel() {
                                 })}
                               </div>
 
-                              <Button size="sm" variant="outline" className="h-7 text-xs mt-3 border-blue-200 text-blue-700 hover:bg-blue-50">
+                              <Button size="sm" variant="outline" className="h-8 text-xs mt-3 border-blue-200 text-blue-700 hover:bg-blue-50 min-h-[44px]">
                                 Vote Now
                               </Button>
                             </div>
@@ -316,13 +324,13 @@ export function EngagementPanel() {
 
         <TabsContent value="volunteer" className="flex-1 m-0">
           <ScrollArea className="h-full">
-            <div className="space-y-3 p-4">
+            <div className="space-y-3 p-3 sm:p-4">
               <div className="py-12 text-center">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-100 to-pink-100">
                   <HandHeart className="h-6 w-6 text-rose-500" />
                 </div>
                 <p className="text-muted-foreground text-sm font-medium">Volunteer events coming soon.</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Stay tuned for community volunteer opportunities</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground/60 mt-1">Stay tuned for community volunteer opportunities</p>
               </div>
             </div>
           </ScrollArea>

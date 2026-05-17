@@ -115,3 +115,38 @@ Stage Summary:
 - Full mobile optimization: bottom navigation, responsive filters, touch-friendly targets, compact map controls
 - Build compiles successfully with 0 errors
 - All panels integrated with DetailSheet for consistent detail viewing experience
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Continue polishing - engagement panel and dashboard panel mobile optimization
+
+Work Log:
+- Updated engagement-panel.tsx with mobile optimizations:
+  - Added useIsMobile hook for responsive behavior
+  - Responsive padding (p-3 on mobile, p-4 on desktop)
+  - Responsive icon sizes (h-8 on mobile, h-9 on desktop)
+  - Responsive text sizes (text-[10px] on mobile, text-xs on desktop)
+  - Responsive spacing (space-y-2 on mobile, space-y-3 on desktop)
+  - Added no-scrollbar class to tabs for horizontal scroll without scrollbar
+  - Added ChevronRight indicator on petition/poll cards for detail navigation hint
+  - Added active:scale-[0.99] touch feedback on cards
+  - Min-height 44px on action buttons for touch targets
+  - Progress bar thinner on mobile (h-1.5 vs h-2)
+  - Responsive official response section padding
+- Updated dashboard-panel.tsx with mobile optimizations:
+  - Added useIsMobile hook for responsive behavior
+  - Responsive padding throughout (p-3/p-4, gap-2/gap-3)
+  - Chart height responsive (220px mobile, 280px desktop)
+  - Category bar chart: rotated labels on mobile (-30deg angle), smaller font size
+  - Pie chart: smaller inner/outer radius on mobile, hide labels on mobile (legend only)
+  - Legend font size responsive (10px mobile, 12px desktop)
+  - Community browser and live feed shorter on mobile (280px vs 350px)
+  - Tooltip font size responsive on mobile
+  - Header icon and text sizes responsive
+
+Stage Summary:
+- All 7 tab panels now fully mobile-optimized with consistent responsive patterns
+- Charts adapt to smaller screens with rotated labels, smaller sizes, and hidden labels
+- Touch targets meet 44px minimum on all interactive elements
+- Build compiles successfully with 0 errors

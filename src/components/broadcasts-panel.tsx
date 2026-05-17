@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CategoryBadge } from '@/components/category-badge'
 import { BroadcastForm } from '@/components/broadcast-form'
+import { ImageThumbnail } from '@/components/image-gallery'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Broadcast } from '@/lib/types'
@@ -54,6 +55,7 @@ function mapBroadcastFromApi(raw: Record<string, unknown>): Broadcast {
     scheduledAt: raw.scheduledAt as string | null,
     publishedAt: raw.publishedAt as string | null,
     expiresAt: raw.expiresAt as string | null,
+    imageUrl: raw.imageUrl as string | null,
     createdAt: raw.createdAt as string,
     updatedAt: raw.updatedAt as string,
   }
@@ -232,47 +234,56 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
                     onClick={() => handleBroadcastClick(broadcast)}
                   >
                     <CardContent className="p-3 sm:p-4">
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        {broadcast.category === 'emergency' ? (
-                          <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-sm shadow-red-500/20">
-                            <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white animate-pulse" />
-                          </div>
-                        ) : (
-                          <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
-                            <Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                      <div className="flex gap-3">
+                        {broadcast.imageUrl && (
+                          <div className="shrink-0">
+                            <img src={broadcast.imageUrl} alt="" className="h-14 w-14 object-cover rounded-lg shrink-0" />
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                            <CategoryBadge category={broadcast.category} />
-                            <Badge
-                              variant={broadcast.priority === 'critical' ? 'destructive' : 'outline'}
-                              className={`text-[10px] font-semibold ${broadcast.priority === 'critical' ? '' : 'border-border/50'}`}
-                            >
-                              {broadcast.priority}
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px] border-border/50 hidden sm:inline-flex">
-                              {broadcast.targetLevel}
-                            </Badge>
-                          </div>
-                          <h3 className="font-semibold text-sm leading-tight">{broadcast.title}</h3>
-                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                            {broadcast.content}
-                          </p>
-                          <div className="mt-2.5 flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground/80">
-                            {broadcast.communityName && (
-                              <span className="inline-flex items-center gap-1 font-medium truncate">{broadcast.communityName}</span>
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            {broadcast.category === 'emergency' ? (
+                              <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-sm shadow-red-500/20">
+                                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white animate-pulse" />
+                              </div>
+                            ) : (
+                              <div className="mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
+                                <Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                              </div>
                             )}
-                            <span className="flex items-center gap-1 shrink-0">
-                              <Clock className="h-3 w-3" />
-                              {formatDistanceToNow(new Date(broadcast.createdAt), { addSuffix: true })}
-                            </span>
-                            {broadcast.publishedByName && !isMobile && (
-                              <span className="hidden sm:inline">by <span className="font-medium">{broadcast.publishedByName}</span></span>
-                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                                <CategoryBadge category={broadcast.category} />
+                                <Badge
+                                  variant={broadcast.priority === 'critical' ? 'destructive' : 'outline'}
+                                  className={`text-[10px] font-semibold ${broadcast.priority === 'critical' ? '' : 'border-border/50'}`}
+                                >
+                                  {broadcast.priority}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] border-border/50 hidden sm:inline-flex">
+                                  {broadcast.targetLevel}
+                                </Badge>
+                              </div>
+                              <h3 className="font-semibold text-sm leading-tight">{broadcast.title}</h3>
+                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {broadcast.content}
+                              </p>
+                              <div className="mt-2.5 flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground/80">
+                                {broadcast.communityName && (
+                                  <span className="inline-flex items-center gap-1 font-medium truncate">{broadcast.communityName}</span>
+                                )}
+                                <span className="flex items-center gap-1 shrink-0">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDistanceToNow(new Date(broadcast.createdAt), { addSuffix: true })}
+                                </span>
+                                {broadcast.publishedByName && !isMobile && (
+                                  <span className="hidden sm:inline">by <span className="font-medium">{broadcast.publishedByName}</span></span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
                       </div>
                     </CardContent>
                   </Card>

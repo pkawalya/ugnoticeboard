@@ -99,6 +99,7 @@ export interface Broadcast {
   communityName?: string;
   targetRadius: number | null;
   channels: string;
+  imageUrl: string | null;
   publishedById: string;
   publishedByName?: string;
   scheduledAt: string | null;
@@ -138,6 +139,7 @@ export interface Project {
   startDate: string | null;
   endDate: string | null;
   progressPercent: number;
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
   milestones?: ProjectMilestone[];
@@ -196,6 +198,7 @@ export interface Facility {
   isOperational: boolean;
   services: string | null;
   contactInfo: string | null;
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
   reviews?: FacilityReview[];

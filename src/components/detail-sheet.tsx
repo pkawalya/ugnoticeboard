@@ -13,7 +13,8 @@ import { StatusBadge } from '@/components/status-badge'
 import { SeverityIndicator } from '@/components/severity-indicator'
 import { CategoryBadge } from '@/components/category-badge'
 import { useIsMobile } from '@/hooks/use-mobile'
-import type { Issue, Broadcast, Project, Facility } from '@/lib/types'
+import type { Issue, Broadcast, Project, Facility, Evidence } from '@/lib/types'
+import { ImageGallery, ImageThumbnail, type GalleryImage } from '@/components/image-gallery'
 import {
   ArrowLeft,
   ThumbsUp,
@@ -216,12 +217,34 @@ function IssueDetail({ data, onVote, voting }: { data: Issue; onVote?: (id: stri
         </div>
       )}
 
-      {/* Evidence placeholder */}
-      <div className="rounded-xl border border-dashed border-border/60 p-4 bg-muted/10">
-        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground">
-          <Paperclip className="h-4 w-4" /> Evidence & Attachments
+      {/* Evidence & Attachments */}
+      <div className="rounded-xl border border-border/50 p-4">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Paperclip className="h-4 w-4 text-green-600" /> Evidence & Attachments
+          {data.evidence && data.evidence.length > 0 && (
+            <Badge variant="secondary" className="text-[10px] bg-green-50 text-green-700">
+              {data.evidence.length} file{data.evidence.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
         </h3>
-        <p className="text-xs text-muted-foreground/60">No evidence files attached to this issue.</p>
+        {data.evidence && data.evidence.length > 0 ? (
+          <ImageGallery
+            images={data.evidence.map((e: Evidence) => ({
+              id: e.id,
+              url: e.url,
+              caption: e.caption || undefined,
+              type: e.type,
+            }))}
+            layout="grid"
+            size="md"
+            showCaption
+          />
+        ) : (
+          <div className='text-center py-6'>
+            <Paperclip className='h-8 w-8 mx-auto text-muted-foreground/30 mb-2' />
+            <p className='text-xs text-muted-foreground/60'>No evidence files attached to this issue.</p>
+          </div>
+        )}
       </div>
 
       {/* Comments placeholder */}
@@ -266,6 +289,17 @@ function BroadcastDetail({ data }: { data: Broadcast }) {
         <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 p-3 emergency-pulse">
           <Siren className="h-5 w-5 text-red-600 animate-pulse" />
           <span className="text-sm font-bold text-red-700">EMERGENCY BROADCAST</span>
+        </div>
+      )}
+
+      {/* Broadcast Image */}
+      {data.imageUrl && (
+        <div className="rounded-xl overflow-hidden">
+          <ImageGallery
+            images={[{ url: data.imageUrl, caption: data.title }]}
+            layout="hero"
+            showCaption={false}
+          />
         </div>
       )}
 
@@ -431,6 +465,17 @@ function ProjectDetail({ data }: { data: Project }) {
         </div>
       </div>
 
+      {/* Project Image */}
+      {data.imageUrl && (
+        <div className="rounded-xl overflow-hidden">
+          <ImageGallery
+            images={[{ url: data.imageUrl, caption: data.name }]}
+            layout="hero"
+            showCaption={false}
+          />
+        </div>
+      )}
+
       {/* Description */}
       <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
         <p className="text-sm text-foreground/90 leading-relaxed">{data.description}</p>
@@ -535,6 +580,17 @@ function FacilityDetail({ data }: { data: Facility }) {
 
       {/* Title */}
       <h2 className="text-lg font-bold leading-tight">{data.name}</h2>
+
+      {/* Facility Image */}
+      {data.imageUrl && (
+        <div className="rounded-xl overflow-hidden">
+          <ImageGallery
+            images={[{ url: data.imageUrl, caption: data.name }]}
+            layout="hero"
+            showCaption={false}
+          />
+        </div>
+      )}
 
       {/* Condition Assessment */}
       <div className="rounded-xl border border-border/50 p-4">

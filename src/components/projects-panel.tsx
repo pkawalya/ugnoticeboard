@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CategoryBadge } from '@/components/category-badge'
+import { ImageThumbnail } from '@/components/image-gallery'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Project } from '@/lib/types'
@@ -63,6 +64,7 @@ function mapProjectFromApi(raw: Record<string, unknown>): Project {
     startDate: raw.startDate as string | null,
     endDate: raw.endDate as string | null,
     progressPercent: raw.progressPercent as number,
+    imageUrl: raw.imageUrl as string | null,
     createdAt: raw.createdAt as string,
     updatedAt: raw.updatedAt as string,
     milestones: milestones?.map((m) => ({
@@ -274,43 +276,52 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
                     onClick={() => handleProjectClick(project)}
                   >
                     <CardContent className="p-3 sm:p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                            <Badge className={`text-[10px] font-semibold ${config.bgColor} ${config.color} border-0`}>
-                              <StatusIcon className="mr-1 h-3 w-3" />
-                              {config.label}
-                            </Badge>
-                            <CategoryBadge category={project.category} showIcon={false} />
+                      <div className="flex gap-3">
+                        {project.imageUrl && (
+                          <div className="shrink-0">
+                            <img src={project.imageUrl} alt="" className="h-14 w-14 object-cover rounded-lg shrink-0" />
                           </div>
-                          <h3 className="font-semibold text-sm leading-tight">{project.name}</h3>
-                          {project.communityName && (
-                            <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-green-500 shrink-0" /> <span className="truncate">{project.communityName}</span>
-                            </p>
-                          )}
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
-                      </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                                <Badge className={`text-[10px] font-semibold ${config.bgColor} ${config.color} border-0`}>
+                                  <StatusIcon className="mr-1 h-3 w-3" />
+                                  {config.label}
+                                </Badge>
+                                <CategoryBadge category={project.category} showIcon={false} />
+                              </div>
+                              <h3 className="font-semibold text-sm leading-tight">{project.name}</h3>
+                              {project.communityName && (
+                                <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3 text-green-500 shrink-0" /> <span className="truncate">{project.communityName}</span>
+                                </p>
+                              )}
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
+                          </div>
 
-                      {/* Progress Bar */}
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground font-medium">Progress</span>
-                          <span className="font-bold text-green-700">{project.progressPercent}%</span>
-                        </div>
-                        <Progress value={project.progressPercent} className="h-2" />
-                      </div>
+                          {/* Progress Bar */}
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="text-muted-foreground font-medium">Progress</span>
+                              <span className="font-bold text-green-700">{project.progressPercent}%</span>
+                            </div>
+                            <Progress value={project.progressPercent} className="h-2" />
+                          </div>
 
-                      {/* Budget Summary */}
-                      <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-2">
-                          <span className="text-green-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Allocated</span>
-                          <span className="font-bold text-green-800 text-xs sm:text-sm">{formatCurrency(project.budgetAllocated)}</span>
-                        </div>
-                        <div className="rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 p-2">
-                          <span className="text-amber-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Spent</span>
-                          <span className="font-bold text-amber-800 text-xs sm:text-sm">{formatCurrency(project.budgetSpent)}</span>
+                          {/* Budget Summary */}
+                          <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-2">
+                              <span className="text-green-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Allocated</span>
+                              <span className="font-bold text-green-800 text-xs sm:text-sm">{formatCurrency(project.budgetAllocated)}</span>
+                            </div>
+                            <div className="rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 p-2">
+                              <span className="text-amber-600 flex items-center gap-1 font-medium text-[10px] uppercase"><DollarSign className="h-3 w-3" />Spent</span>
+                              <span className="font-bold text-amber-800 text-xs sm:text-sm">{formatCurrency(project.budgetSpent)}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

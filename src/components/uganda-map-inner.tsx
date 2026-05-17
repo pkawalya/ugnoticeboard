@@ -374,6 +374,7 @@ function createFacilityPopup(facility: {
   services?: string | null
   contactInfo?: string | null
   communityName?: string | null
+  imageUrl?: string | null
 }) {
   const meta = FACILITY_TYPE_META[facility.type] || { icon: '📍', color: '#6b7280', label: 'Facility' }
   const conditionColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -383,9 +384,14 @@ function createFacilityPopup(facility: {
   }
   const condStyle = conditionColors[facility.condition] || conditionColors.fair
 
+  const imageHtml = facility.imageUrl
+    ? `<img src="${facility.imageUrl}" alt="${facility.name}" style="width:100%;height:120px;object-fit:cover;border-radius:8px 8px 0 0;margin:-2px -2px 0;display:block;" />`
+    : ''
+
   return `
     <div style="min-width:200px;max-width:260px;font-family:system-ui,-apple-system,sans-serif;">
-      <div class="popup-header" style="background:linear-gradient(135deg,${meta.color},${meta.color}dd);margin:-2px -2px 0;padding:12px 14px;color:white;">
+      ${imageHtml}
+      <div class="popup-header" style="background:linear-gradient(135deg,${meta.color},${meta.color}dd);${facility.imageUrl ? '' : 'margin:-2px -2px 0;'}padding:12px 14px;color:white;">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
             ${meta.icon}
@@ -463,6 +469,7 @@ function mapFacilityFromApi(raw: Record<string, unknown>) {
     isOperational: raw.isOperational as boolean,
     services: raw.services as string | null,
     contactInfo: raw.contactInfo as string | null,
+    imageUrl: raw.imageUrl as string | null,
   }
 }
 
@@ -533,6 +540,7 @@ export default function UgandaMap({
       isOperational: boolean
       services: string | null
       contactInfo: string | null
+      imageUrl: string | null
     }[]
   >([])
   const isMobile = useIsMobile()
@@ -856,6 +864,7 @@ export default function UgandaMap({
         services?: string | null
         contactInfo?: string | null
         communityName?: string | null
+        imageUrl?: string | null
       }) => {
         if (facility.latitude == null || facility.longitude == null) return
         const icon = createFacilityIcon(facility.type)

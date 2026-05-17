@@ -20,6 +20,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { SeverityIndicator } from '@/components/severity-indicator'
 import { CategoryBadge } from '@/components/category-badge'
 import { IssueForm } from '@/components/issue-form'
+import { ImageThumbnail, type GalleryImage } from '@/components/image-gallery'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAuthStore } from '@/hooks/use-auth'
@@ -70,6 +71,7 @@ function mapIssueFromApi(raw: Record<string, unknown>): Issue {
     viewCount: (raw.viewCount as number) ?? 0,
     createdAt: raw.createdAt as string,
     updatedAt: raw.updatedAt as string,
+    evidence: (raw.evidence || []) as Array<{ id: string; issueId: string; type: string; url: string; caption: string | null; uploadedAt: string }>,
   }
 }
 
@@ -377,40 +379,52 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
                   onClick={() => handleIssueClick(issue)}
                 >
                   <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                          <SeverityIndicator severity={issue.severity} />
-                          <StatusBadge status={issue.status} />
-                          <CategoryBadge category={issue.category} />
+                    <div className="flex gap-3">
+                      {issue.evidence?.length ? (
+                        <div className="shrink-0">
+                          <ImageThumbnail
+                            images={issue.evidence.map(e => ({ id: e.id, url: e.url, caption: e.caption, type: e.type as GalleryImage['type'] }))}
+                            className="h-14 w-14"
+                          />
                         </div>
-                        <h3 className="font-semibold text-sm leading-tight">{issue.title}</h3>
-                        {issue.communityName && (
-                          <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-green-500 shrink-0" />
-                            <span className="truncate">{issue.communityName}</span>
-                            {issue.location && <span className="text-muted-foreground/60 hidden sm:inline">· {issue.location}</span>}
-                          </p>
-                        )}
-                      </div>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
-                    </div>
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                              <SeverityIndicator severity={issue.severity} />
+                              <StatusBadge status={issue.status} />
+                              <CategoryBadge category={issue.category} />
+                            </div>
+                            <h3 className="font-semibold text-sm leading-tight">{issue.title}</h3>
+                            {issue.communityName && (
+                              <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-green-500 shrink-0" />
+                                <span className="truncate">{issue.communityName}</span>
+                                {issue.location && <span className="text-muted-foreground/60 hidden sm:inline">· {issue.location}</span>}
+                              </p>
+                            )}
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
+                        </div>
 
-                    <div className="mt-2.5 flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1 hover:text-green-600 transition-colors">
-                        <ThumbsUp className="h-3 w-3" /> {issue.voteCount}
-                      </span>
-                      <span className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-                        <MessageSquare className="h-3 w-3" /> {issue.commentCount}
-                      </span>
-                      <span className="flex items-center gap-1 hover:text-purple-600 transition-colors">
-                        <Eye className="h-3 w-3" /> {issue.viewCount}
-                      </span>
-                      <span className="ml-auto flex items-center gap-1 text-muted-foreground/60">
-                        <Clock className="h-3 w-3" />
-                        <span className="hidden sm:inline">{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}</span>
-                        <span className="sm:hidden">{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true }).replace('about ', '').replace(' minutes', 'm').replace(' minute', 'm').replace(' hours', 'h').replace(' hour', 'h').replace(' days', 'd').replace(' day', 'd')}</span>
-                      </span>
+                        <div className="mt-2.5 flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1 hover:text-green-600 transition-colors">
+                            <ThumbsUp className="h-3 w-3" /> {issue.voteCount}
+                          </span>
+                          <span className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                            <MessageSquare className="h-3 w-3" /> {issue.commentCount}
+                          </span>
+                          <span className="flex items-center gap-1 hover:text-purple-600 transition-colors">
+                            <Eye className="h-3 w-3" /> {issue.viewCount}
+                          </span>
+                          <span className="ml-auto flex items-center gap-1 text-muted-foreground/60">
+                            <Clock className="h-3 w-3" />
+                            <span className="hidden sm:inline">{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}</span>
+                            <span className="sm:hidden">{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true }).replace('about ', '').replace(' minutes', 'm').replace(' minute', 'm').replace(' hours', 'h').replace(' hour', 'h').replace(' days', 'd').replace(' day', 'd')}</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

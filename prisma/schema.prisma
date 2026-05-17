@@ -171,6 +171,7 @@ model Broadcast {
   communityId     String?
   targetRadius    Float?   // km radius for geo-targeted broadcasts
   channels        String   @default("in_app") // comma-separated: in_app,email,sms,whatsapp,push
+  imageUrl        String?  // Broadcast header/cover image
   publishedById   String
   scheduledAt     DateTime?
   publishedAt     DateTime?
@@ -392,6 +393,7 @@ model Project {
   startDate       DateTime?
   endDate         DateTime?
   progressPercent Int      @default(0)
+  imageUrl        String?  // Project photo
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -443,6 +445,7 @@ model Facility {
   isOperational   Boolean  @default(true)
   services        String?  // comma-separated list of services
   contactInfo     String?
+  imageUrl        String?  // Facility photo
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

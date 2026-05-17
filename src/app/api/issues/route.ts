@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true, role: true, isAnonymous: true },
           },
           assignedTo: { select: { id: true, name: true } },
+          evidence: { orderBy: { uploadedAt: "desc" } },
           _count: { select: { comments: true, votes: true, evidence: true } },
         },
         orderBy: { createdAt: "desc" },

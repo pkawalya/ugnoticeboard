@@ -2945,6 +2945,134 @@ async function main() {
     prisma.vote.create({ data: { userId: citizenUsers[11].id, issueId: issues[21].id, direction: "up" } }),
   ]);
 
+  // ============================================================
+  // 16. Add Images: Evidence, Facility/Project/Broadcast Images
+  // ============================================================
+  console.log("📷 Adding images...");
+
+  // Evidence images for issues (category-matched photos)
+  const evidenceImages: Record<string, { url: string; caption: string }[]> = {
+    roads: [
+      { url: "https://images.unsplash.com/photo-1581094288338-2314dddb7ece?w=600&h=400&fit=crop", caption: "Road damage evidence" },
+      { url: "https://images.unsplash.com/photo-1600585152220-90363fe7e115?w=600&h=400&fit=crop", caption: "Road infrastructure condition" },
+      { url: "https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=400&fit=crop", caption: "Pothole damage to vehicles" },
+    ],
+    water: [
+      { url: "https://images.unsplash.com/photo-1541544537156-7627a7a4aa1c?w=600&h=400&fit=crop", caption: "Water supply issue" },
+      { url: "https://images.unsplash.com/photo-1484291470158-b8f8d608850d?w=600&h=400&fit=crop", caption: "Community water point" },
+      { url: "https://images.unsplash.com/photo-1594398901394-4e34939a4fd0?w=600&h=400&fit=crop", caption: "Water contamination evidence" },
+    ],
+    health: [
+      { url: "https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=600&h=400&fit=crop", caption: "Health facility condition" },
+      { url: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=600&h=400&fit=crop", caption: "Medical equipment shortage" },
+      { url: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop", caption: "Healthcare access issue" },
+    ],
+    corruption: [
+      { url: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&h=400&fit=crop", caption: "Documentation evidence" },
+      { url: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=400&fit=crop", caption: "Financial records" },
+    ],
+    security: [
+      { url: "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=600&h=400&fit=crop", caption: "Security concern evidence" },
+      { url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&h=400&fit=crop", caption: "Community safety issue" },
+    ],
+    environment: [
+      { url: "https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=600&h=400&fit=crop", caption: "Environmental degradation" },
+      { url: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&h=400&fit=crop", caption: "Pollution evidence" },
+    ],
+    utilities: [
+      { url: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&h=400&fit=crop", caption: "Utility infrastructure" },
+      { url: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=600&h=400&fit=crop", caption: "Power supply issue" },
+    ],
+    disaster: [
+      { url: "https://images.unsplash.com/photo-1527482937786-6f053342e749?w=600&h=400&fit=crop", caption: "Flood damage evidence" },
+      { url: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&h=400&fit=crop", caption: "Natural disaster impact" },
+    ],
+  };
+
+  // Add evidence to high-severity issues
+  const allIssues = await prisma.issue.findMany({ take: 25 });
+  const evidencePromises: Promise<unknown>[] = [];
+  for (const issue of allIssues) {
+    const imgs = evidenceImages[issue.category] || evidenceImages.roads;
+    // Add 1-3 evidence photos per issue
+    const count = Math.min(imgs.length, issue.severity === "critical" ? 3 : issue.severity === "high" ? 2 : 1);
+    for (let i = 0; i < count; i++) {
+      evidencePromises.push(
+        prisma.evidence.create({
+          data: {
+            issueId: issue.id,
+            type: "photo",
+            url: imgs[i % imgs.length].url,
+            caption: imgs[i % imgs.length].caption,
+          },
+        })
+      );
+    }
+  }
+  await Promise.all(evidencePromises);
+
+  // Add images to facilities
+  const facilityImages: Record<string, string> = {
+    hospital: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&h=400&fit=crop",
+    health_center: "https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=600&h=400&fit=crop",
+    school: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=400&fit=crop",
+    police_station: "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=600&h=400&fit=crop",
+    water_point: "https://images.unsplash.com/photo-1541544537156-7627a7a4aa1c?w=600&h=400&fit=crop",
+    road: "https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=400&fit=crop",
+    market: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=400&fit=crop",
+    fire_station: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=400&fit=crop",
+    library: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
+    community_center: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop",
+  };
+  const allFacilities = await prisma.facility.findMany();
+  await Promise.all(
+    allFacilities.map((f) =>
+      prisma.facility.update({
+        where: { id: f.id },
+        data: { imageUrl: facilityImages[f.type] || facilityImages.community_center },
+      })
+    )
+  );
+
+  // Add images to projects
+  const projectImages: Record<string, string> = {
+    infrastructure: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=400&fit=crop",
+    health: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop",
+    education: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=400&fit=crop",
+    water: "https://images.unsplash.com/photo-1484291470158-b8f8d608850d?w=600&h=400&fit=crop",
+    agriculture: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&h=400&fit=crop",
+  };
+  const allProjects = await prisma.project.findMany();
+  await Promise.all(
+    allProjects.map((p) =>
+      prisma.project.update({
+        where: { id: p.id },
+        data: { imageUrl: projectImages[p.category] || projectImages.infrastructure },
+      })
+    )
+  );
+
+  // Add images to broadcasts
+  const broadcastImages: Record<string, string> = {
+    emergency: "https://images.unsplash.com/photo-1527482937786-6f053342e749?w=600&h=400&fit=crop",
+    health: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=600&h=400&fit=crop",
+    security: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&h=400&fit=crop",
+    infrastructure: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=400&fit=crop",
+    meeting: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&h=400&fit=crop",
+    civic: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop",
+    weather: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&h=400&fit=crop",
+    agriculture: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&h=400&fit=crop",
+  };
+  const allBroadcasts = await prisma.broadcast.findMany();
+  await Promise.all(
+    allBroadcasts.map((b) =>
+      prisma.broadcast.update({
+        where: { id: b.id },
+        data: { imageUrl: broadcastImages[b.category] || broadcastImages.civic },
+      })
+    )
+  );
+
   console.log("\n✅ Seed completed successfully!");
   console.log("📊 Summary:");
   console.log("  - 1 Country (Uganda)");

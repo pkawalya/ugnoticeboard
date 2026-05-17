@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CategoryBadge } from '@/components/category-badge'
+import { ImageThumbnail } from '@/components/image-gallery'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Facility } from '@/lib/types'
@@ -62,6 +63,7 @@ function mapFacilityFromApi(raw: Record<string, unknown>): Facility {
     isOperational: raw.isOperational as boolean,
     services: raw.services as string | null,
     contactInfo: raw.contactInfo as string | null,
+    imageUrl: raw.imageUrl as string | null,
     createdAt: raw.createdAt as string,
     updatedAt: raw.updatedAt as string,
     averageRating: raw.averageRating as number | undefined,
@@ -264,42 +266,51 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
                     onClick={() => handleFacilityClick(facility)}
                   >
                     <CardContent className="p-3 sm:p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
-                            <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 border border-purple-100 text-xs sm:text-sm">
-                              {FACILITY_TYPE_META[facility.type]?.icon || '📍'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-                                <CategoryBadge category={facility.type} />
-                                <Badge className={`text-[10px] font-semibold ${condConfig.bgColor} ${condConfig.color} border-0`}>
-                                  {facility.condition === 'non_functional' ? <XCircle className="mr-1 h-3 w-3" /> :
-                                   facility.condition === 'poor' || facility.condition === 'fair' ? <AlertTriangle className="mr-1 h-3 w-3" /> :
-                                   <CheckCircle2 className="mr-1 h-3 w-3" />}
-                                  {condConfig.label}
-                                </Badge>
-                                {!facility.isOperational && (
-                                  <Badge variant="destructive" className="text-[10px]">Not Operational</Badge>
-                                )}
-                              </div>
-                              <h3 className="font-semibold text-sm leading-tight truncate">{facility.name}</h3>
-                            </div>
+                      <div className="flex gap-3">
+                        {facility.imageUrl && (
+                          <div className="shrink-0">
+                            <img src={facility.imageUrl} alt="" className="h-14 w-14 object-cover rounded-lg shrink-0" />
                           </div>
-                          {facility.communityName && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 ml-9">
-                              <MapPin className="h-3 w-3 text-green-500 shrink-0" /> <span className="truncate">{facility.communityName}</span>
-                            </p>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
+                                <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 border border-purple-100 text-xs sm:text-sm">
+                                  {FACILITY_TYPE_META[facility.type]?.icon || '📍'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                                    <CategoryBadge category={facility.type} />
+                                    <Badge className={`text-[10px] font-semibold ${condConfig.bgColor} ${condConfig.color} border-0`}>
+                                      {facility.condition === 'non_functional' ? <XCircle className="mr-1 h-3 w-3" /> :
+                                       facility.condition === 'poor' || facility.condition === 'fair' ? <AlertTriangle className="mr-1 h-3 w-3" /> :
+                                       <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                      {condConfig.label}
+                                    </Badge>
+                                    {!facility.isOperational && (
+                                      <Badge variant="destructive" className="text-[10px]">Not Operational</Badge>
+                                    )}
+                                  </div>
+                                  <h3 className="font-semibold text-sm leading-tight truncate">{facility.name}</h3>
+                                </div>
+                              </div>
+                              {facility.communityName && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 ml-9">
+                                  <MapPin className="h-3 w-3 text-green-500 shrink-0" /> <span className="truncate">{facility.communityName}</span>
+                                </p>
+                              )}
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
+                          </div>
+
+                          {facility.averageRating != null && facility.averageRating > 0 && (
+                            <div className="mt-2 ml-9">
+                              <StarRating rating={facility.averageRating} />
+                            </div>
                           )}
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />
                       </div>
-
-                      {facility.averageRating != null && facility.averageRating > 0 && (
-                        <div className="mt-2 ml-9">
-                          <StarRating rating={facility.averageRating} />
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </motion.div>

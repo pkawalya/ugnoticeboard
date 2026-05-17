@@ -58,3 +58,28 @@ Stage Summary:
 - Engagement panel now fully functional (sign petitions, vote polls, join events)
 - All panels properly filter by district
 - Dark mode works with persistence across sessions
+---
+Task ID: image-display-1
+Agent: Main Agent
+Task: Implement image display on pages and map
+
+Work Log:
+- Created ImageGallery component with grid/carousel/hero layouts + lightbox viewer
+- Created ImageUpload component with drag-and-drop, preview, validation
+- Updated Prisma schema: added imageUrl to Broadcast, Facility, Project models
+- Updated TypeScript types: added imageUrl to Broadcast, Facility, Project interfaces
+- Updated seed data: 50 evidence records for issues, 34 facility images, 11 project images, 15 broadcast images (all category-matched Unsplash URLs)
+- Updated detail-sheet.tsx: Issue evidence gallery, Broadcast/Project/Facility hero images
+- Updated map popups: Facility popups now show image thumbnails above header
+- Updated all 4 panels (issues, broadcasts, projects, facilities): 56x56 image thumbnails on card left side
+- Updated issues API route: includes evidence array in response
+- Created /api/upload route for file uploads
+- Ran prisma generate, db push, seed - all successful
+- Build passes with 0 errors
+
+Stage Summary:
+- Images now display everywhere: detail views, panel cards, map popups
+- 50 evidence photos seeded for issues (1-3 per issue based on severity)
+- All 34 facilities, 11 projects, 15 broadcasts have category-matched images
+- Lightbox supports zoom, navigation, download, thumbnails strip
+- Image upload component ready for forms integration

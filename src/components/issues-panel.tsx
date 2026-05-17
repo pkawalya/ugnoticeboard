@@ -22,6 +22,8 @@ import { CategoryBadge } from '@/components/category-badge'
 import { IssueForm } from '@/components/issue-form'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useAuthStore } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
 import type { Issue, IssueFilters, IssueCategory, IssueSeverity, IssueStatus } from '@/lib/types'
 import { ISSUE_CATEGORIES, DISTRICTS } from '@/lib/uganda-data'
 import {
@@ -88,6 +90,8 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
   const [error, setError] = useState<string | null>(null)
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set())
   const isMobile = useIsMobile()
+  const { user } = useAuthStore()
+  const { toast } = useToast()
 
   const fetchIssues = useCallback(async () => {
     try {
@@ -138,12 +142,16 @@ export function IssuesPanel({ districtFilter, onDistrictClear }: IssuesPanelProp
 
   const handleVote = async (issueId: string) => {
     if (votingIds.has(issueId)) return
+    if (!user) {
+      toast({ title: 'Sign in required', description: 'Please sign in to vote' })
+      return
+    }
     setVotingIds(prev => new Set(prev).add(issueId))
     try {
       const res = await fetch(`/api/issues/${issueId}/votes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'demo-user', direction: 'up' }),
+        body: JSON.stringify({ userId: user.id, direction: 'up' }),
       })
       if (res.ok) {
         setIssues(prev => prev.map(issue =>

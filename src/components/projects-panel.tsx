@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -173,98 +173,60 @@ export function ProjectsPanel({ districtFilter }: ProjectsPanelProps) {
           </Button>
         </div>
 
-        {/* Desktop: inline filters | Mobile: collapsible */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9 text-xs bg-white">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="planned">Planned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="stalled">Stalled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="h-9 text-xs bg-white">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="infrastructure">Infrastructure</SelectItem>
-                    <SelectItem value="health">Health</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="water">Water</SelectItem>
-                    <SelectItem value="agriculture">Agriculture</SelectItem>
-                  </SelectContent>
-                </Select>
+        {/* Filters: always visible on desktop, toggle on mobile */}
+        {(!isMobile || showFilters) && (
+          <div className={`${isMobile ? 'animate-in fade-in slide-in-from-top-1 duration-200' : ''}`}>
+            <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 text-xs bg-white">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="planned">Planned</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="stalled">Stalled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-9 text-xs bg-white">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                  <SelectItem value="health">Health</SelectItem>
+                  <SelectItem value="education">Education</SelectItem>
+                  <SelectItem value="water">Water</SelectItem>
+                  <SelectItem value="agriculture">Agriculture</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Active filter pills */}
+            {(statusFilter !== 'all' || categoryFilter !== 'all') && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {statusFilter !== 'all' && (
+                  <Badge variant="secondary" className="gap-1 text-[10px] bg-amber-50 text-amber-700">
+                    Status: {statusFilter}
+                    <button onClick={() => setStatusFilter('all')}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {categoryFilter !== 'all' && (
+                  <Badge variant="secondary" className="gap-1 text-[10px] bg-amber-50 text-amber-700">
+                    Category: {categoryFilter}
+                    <button onClick={() => setCategoryFilter('all')}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => { setStatusFilter('all'); setCategoryFilter('all') }}>
+                  Clear all
+                </Button>
               </div>
-              {/* Active filter pills */}
-              {(statusFilter !== 'all' || categoryFilter !== 'all') && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {statusFilter !== 'all' && (
-                    <Badge variant="secondary" className="gap-1 text-[10px] bg-amber-50 text-amber-700">
-                      Status: {statusFilter}
-                      <button onClick={() => setStatusFilter('all')}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {categoryFilter !== 'all' && (
-                    <Badge variant="secondary" className="gap-1 text-[10px] bg-amber-50 text-amber-700">
-                      Category: {categoryFilter}
-                      <button onClick={() => setCategoryFilter('all')}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => { setStatusFilter('all'); setCategoryFilter('all') }}>
-                    Clear all
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Desktop: always show inline filters */}
-        {!isMobile && !showFilters && (
-          <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 h-9 text-xs bg-white">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="planned">Planned</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="stalled">Stalled</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-32 h-9 text-xs bg-white">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="infrastructure">Infrastructure</SelectItem>
-                <SelectItem value="health">Health</SelectItem>
-                <SelectItem value="education">Education</SelectItem>
-                <SelectItem value="water">Water</SelectItem>
-                <SelectItem value="agriculture">Agriculture</SelectItem>
-              </SelectContent>
-            </Select>
+            )}
           </div>
         )}
       </div>

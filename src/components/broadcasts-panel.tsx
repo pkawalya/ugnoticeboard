@@ -66,6 +66,8 @@ const categoryTabs: { value: string; label: string; icon: React.ElementType; gra
   { value: 'security', label: 'Security', icon: Shield, gradient: 'from-purple-500 to-violet-500' },
   { value: 'infrastructure', label: 'Infra', icon: Wrench, gradient: 'from-amber-500 to-yellow-500' },
   { value: 'civic', label: 'Civic', icon: Building2, gradient: 'from-cyan-500 to-blue-500' },
+  { value: 'general', label: 'General', icon: Megaphone, gradient: 'from-green-500 to-emerald-500' },
+  { value: 'meeting', label: 'Meeting', icon: Building2, gradient: 'from-orange-500 to-amber-500' },
 ]
 
 interface BroadcastsPanelProps {
@@ -290,7 +292,7 @@ export function BroadcastsPanel({ districtFilter }: BroadcastsPanelProps) {
         </div>
       </ScrollArea>
 
-      <BroadcastForm open={showForm} onOpenChange={setShowForm} />
+      <BroadcastForm open={showForm} onOpenChange={setShowForm} onSubmitted={fetchBroadcasts} />
 
       {/* Detail Sheet */}
       <DetailSheet

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { CategoryBadge } from '@/components/category-badge'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Facility } from '@/lib/types'
+import { FACILITY_TYPE_META } from '@/lib/uganda-data'
 import {
   Search,
   MapPin,
@@ -32,7 +33,7 @@ import {
   X,
 } from 'lucide-react'
 
-type FacilityType = 'school' | 'hospital' | 'police_station' | 'water_point' | 'market' | 'road'
+type FacilityType = 'school' | 'hospital' | 'police_station' | 'water_point' | 'market' | 'road' | 'health_center'
 type FacilityCondition = 'excellent' | 'good' | 'fair' | 'poor' | 'non_functional'
 
 const conditionConfig: Record<string, { label: string; color: string; bgColor: string; gradient: string }> = {
@@ -43,14 +44,7 @@ const conditionConfig: Record<string, { label: string; color: string; bgColor: s
   non_functional: { label: 'Non-functional', color: 'text-red-700', bgColor: 'bg-red-100', gradient: 'from-red-500 to-rose-500' },
 }
 
-const typeIcons: Record<string, string> = {
-  school: '📚',
-  hospital: '🏥',
-  police_station: '🏛️',
-  water_point: '💧',
-  market: '🏪',
-  road: '🛣️',
-}
+
 
 function mapFacilityFromApi(raw: Record<string, unknown>): Facility {
   const community = raw.community as Record<string, string> | undefined
@@ -176,100 +170,59 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
           </Button>
         </div>
 
-        {/* Collapsible filters on mobile, inline on desktop */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="h-9 text-xs bg-white">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="school">School</SelectItem>
-                    <SelectItem value="hospital">Hospital</SelectItem>
-                    <SelectItem value="police_station">Police</SelectItem>
-                    <SelectItem value="water_point">Water</SelectItem>
-                    <SelectItem value="market">Market</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                  <SelectTrigger className="h-9 text-xs bg-white">
-                    <SelectValue placeholder="Condition" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Conditions</SelectItem>
-                    <SelectItem value="excellent">Excellent</SelectItem>
-                    <SelectItem value="good">Good</SelectItem>
-                    <SelectItem value="fair">Fair</SelectItem>
-                    <SelectItem value="poor">Poor</SelectItem>
-                    <SelectItem value="non_functional">Non-functional</SelectItem>
-                  </SelectContent>
-                </Select>
+        {/* Filters: always visible on desktop, toggle on mobile */}
+        {(!isMobile || showFilters) && (
+          <div className={`${isMobile ? 'animate-in fade-in slide-in-from-top-1 duration-200' : ''}`}>
+            <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 text-xs bg-white">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {Object.entries(FACILITY_TYPE_META).map(([key, meta]) => (
+                    <SelectItem key={key} value={key}>{meta.icon} {meta.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                <SelectTrigger className="h-9 text-xs bg-white">
+                  <SelectValue placeholder="Condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Conditions</SelectItem>
+                  <SelectItem value="excellent">Excellent</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="poor">Poor</SelectItem>
+                  <SelectItem value="non_functional">Non-functional</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Active filter pills */}
+            {(typeFilter !== 'all' || conditionFilter !== 'all') && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {typeFilter !== 'all' && (
+                  <Badge variant="secondary" className="gap-1 text-[10px] bg-purple-50 text-purple-700">
+                    Type: {FACILITY_TYPE_META[typeFilter]?.label || typeFilter}
+                    <button onClick={() => setTypeFilter('all')}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {conditionFilter !== 'all' && (
+                  <Badge variant="secondary" className="gap-1 text-[10px] bg-purple-50 text-purple-700">
+                    Condition: {conditionFilter}
+                    <button onClick={() => setConditionFilter('all')}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => { setTypeFilter('all'); setConditionFilter('all') }}>
+                  Clear all
+                </Button>
               </div>
-              {/* Active filter pills */}
-              {(typeFilter !== 'all' || conditionFilter !== 'all') && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {typeFilter !== 'all' && (
-                    <Badge variant="secondary" className="gap-1 text-[10px] bg-purple-50 text-purple-700">
-                      Type: {typeFilter}
-                      <button onClick={() => setTypeFilter('all')}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {conditionFilter !== 'all' && (
-                    <Badge variant="secondary" className="gap-1 text-[10px] bg-purple-50 text-purple-700">
-                      Condition: {conditionFilter}
-                      <button onClick={() => setConditionFilter('all')}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  <Button variant="ghost" size="sm" className="h-5 text-[10px] text-muted-foreground" onClick={() => { setTypeFilter('all'); setConditionFilter('all') }}>
-                    Clear all
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Desktop: always show inline filters */}
-        {!isMobile && !showFilters && (
-          <div className="flex gap-2">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-32 h-9 text-xs bg-white">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="school">School</SelectItem>
-                <SelectItem value="hospital">Hospital</SelectItem>
-                <SelectItem value="police_station">Police</SelectItem>
-                <SelectItem value="water_point">Water</SelectItem>
-                <SelectItem value="market">Market</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={conditionFilter} onValueChange={setConditionFilter}>
-              <SelectTrigger className="w-32 h-9 text-xs bg-white">
-                <SelectValue placeholder="Condition" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Conditions</SelectItem>
-                <SelectItem value="excellent">Excellent</SelectItem>
-                <SelectItem value="good">Good</SelectItem>
-                <SelectItem value="fair">Fair</SelectItem>
-                <SelectItem value="poor">Poor</SelectItem>
-                <SelectItem value="non_functional">Non-functional</SelectItem>
-              </SelectContent>
-            </Select>
+            )}
           </div>
         )}
       </div>
@@ -315,7 +268,7 @@ export function FacilitiesPanel({ districtFilter }: FacilitiesPanelProps) {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
                             <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 border border-purple-100 text-xs sm:text-sm">
-                              {typeIcons[facility.type] || '📍'}
+                              {FACILITY_TYPE_META[facility.type]?.icon || '📍'}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5 mb-0.5">

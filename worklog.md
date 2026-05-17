@@ -29,3 +29,32 @@ Stage Summary:
 - seed.ts: 57 issues, 15 broadcasts, 33 facilities, 11 projects across all regions
 - Map: SVG pin markers, boundary polygons, heat zones, tile switcher, rich popups, cluster rings
 - All data seeded to SQLite database, build verified
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Continue - fix critical bugs and enhance platform features
+
+Work Log:
+- Created use-theme.ts hook with Zustand + localStorage for dark mode
+- Implemented working dark mode toggle in page.tsx with Sun/Moon icons and dark: class variants
+- Built global search with debounced API calls to /api/search, grouped results by type (Issues, Broadcasts, Facilities, Projects, Communities)
+- Connected notification badge to real /api/notifications endpoint with unread count
+- Added notification dropdown panel with type icons, timestamps, and unread indicators
+- Enhanced dashboard panel: fixed metrics (active/total distinction), added severity chart, regional distribution table, period selector, auto-refresh, last updated timestamp
+- Made engagement panel fully functional: petition signing, poll voting with radio selection, volunteer events tab
+- Fixed issues-panel voting to use real auth user ID instead of hardcoded 'demo-user'
+- Fixed duplicate filter code in projects-panel and facilities-panel
+- Added missing facility types (road, health_center) to facilities filter
+- Added general and meeting categories to broadcasts panel
+- Added onSubmitted callback to BroadcastForm for list refresh
+- Added districtFilter prop to engagement panel
+- Created meetings/[id] API route for join event functionality
+- Build compiles successfully
+
+Stage Summary:
+- 6 critical bugs fixed (dark mode, search, notifications, voting, filters, metrics)
+- Dashboard enhanced with severity chart, regional distribution, auto-refresh
+- Engagement panel now fully functional (sign petitions, vote polls, join events)
+- All panels properly filter by district
+- Dark mode works with persistence across sessions

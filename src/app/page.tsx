@@ -15,6 +15,7 @@ import { DashboardPanel } from '@/components/dashboard-panel'
 import { AuthDialogs } from '@/components/auth-dialogs'
 import { useAuthStore } from '@/hooks/use-auth'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useThemeStore } from '@/hooks/use-theme'
 import {
   Map,
   AlertTriangle,
@@ -35,8 +36,14 @@ import {
   Crown,
   Search,
   Moon,
+  Sun,
   MoreHorizontal,
   ChevronRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  Zap,
 } from 'lucide-react'
 
 const tabs = [
@@ -50,6 +57,158 @@ const tabs = [
 ]
 
 type TabId = (typeof tabs)[number]['id']
+
+// Search Results Component
+function SearchResults({ query, onResultClick }: { query: string; onResultClick: () => void }) {
+  const [results, setResults] = useState<{ issues: any[]; communities: any[]; facilities: any[]; projects: any[] } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!query || query.length < 2) return
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setResults(data.data)
+        }
+      } catch (e) {
+        console.error('Search error:', e)
+      } finally {
+        setLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-sm">Searching...</span>
+      </div>
+    )
+  }
+
+  if (!results) return null
+
+  const hasResults =
+    (results.issues?.length ?? 0) > 0 ||
+    (results.communities?.length ?? 0) > 0 ||
+    (results.facilities?.length ?? 0) > 0 ||
+    (results.projects?.length ?? 0) > 0
+
+  if (!hasResults) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <Search className="h-8 w-8 mb-2 opacity-40" />
+        <p className="text-sm font-medium">No results found</p>
+        <p className="text-xs">Try a different search term</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="divide-y divide-border/50">
+      {results.issues?.length > 0 && (
+        <div className="p-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <AlertTriangle className="h-3 w-3 text-orange-500" /> Issues
+          </h3>
+          <div className="space-y-1">
+            {results.issues.slice(0, 5).map((issue: any) => (
+              <button
+                key={issue.id}
+                onClick={onResultClick}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
+              >
+                <p className="text-sm font-medium truncate">{issue.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{issue.description?.slice(0, 80)}{issue.description?.length > 80 ? '...' : ''}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {results.communities?.length > 0 && (
+        <div className="p-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Map className="h-3 w-3 text-green-500" /> Communities
+          </h3>
+          <div className="space-y-1">
+            {results.communities.slice(0, 5).map((comm: any) => (
+              <button
+                key={comm.id}
+                onClick={onResultClick}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
+              >
+                <p className="text-sm font-medium truncate">{comm.name}</p>
+                <p className="text-xs text-muted-foreground">{comm.adminType} {comm._count ? `· ${comm._count.issues} issues` : ''}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {results.broadcasts?.length > 0 && (
+        <div className="p-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Megaphone className="h-3 w-3 text-blue-500" /> Broadcasts
+          </h3>
+          <div className="space-y-1">
+            {results.broadcasts.slice(0, 5).map((bc: any) => (
+              <button
+                key={bc.id}
+                onClick={onResultClick}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
+              >
+                <p className="text-sm font-medium truncate">{bc.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{bc.content?.slice(0, 80)}{bc.content?.length > 80 ? '...' : ''}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {results.facilities?.length > 0 && (
+        <div className="p-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Building2 className="h-3 w-3 text-purple-500" /> Facilities
+          </h3>
+          <div className="space-y-1">
+            {results.facilities.slice(0, 5).map((fac: any) => (
+              <button
+                key={fac.id}
+                onClick={onResultClick}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
+              >
+                <p className="text-sm font-medium truncate">{fac.name}</p>
+                <p className="text-xs text-muted-foreground">{fac.type} · {fac.condition}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {results.projects?.length > 0 && (
+        <div className="p-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <HardHat className="h-3 w-3 text-amber-500" /> Projects
+          </h3>
+          <div className="space-y-1">
+            {results.projects.slice(0, 5).map((proj: any) => (
+              <button
+                key={proj.id}
+                onClick={onResultClick}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
+              >
+                <p className="text-sm font-medium truncate">{proj.name}</p>
+                <p className="text-xs text-muted-foreground">{proj.status} · {proj.progressPercent}% complete</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Mobile bottom nav - 5 key tabs + More
 const mobileBottomTabs = [
@@ -99,8 +258,17 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [notifCount, setNotifCount] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
   const { user, isAuthenticated, logout } = useAuthStore()
   const isMobile = useIsMobile()
+  const { theme, toggleTheme } = useThemeStore()
+
+  // Initialize theme on mount
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   // Close more menu when clicking outside
   useEffect(() => {
@@ -109,6 +277,39 @@ export default function Home() {
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
   }, [showMoreMenu])
+
+  // Fetch notification count
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      // Schedule reset for next tick to avoid synchronous setState in effect
+      const raf = requestAnimationFrame(() => setNotifCount(0))
+      return () => cancelAnimationFrame(raf)
+    }
+    let cancelled = false
+    fetch(`/api/notifications?userId=${user.id}&limit=10`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (cancelled) return
+        if (data?.data) {
+          setNotifCount(data.data.filter((n: any) => !n.isRead).length)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [isAuthenticated, user?.id])
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    if (!showNotifications) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-notif-panel]')) {
+        setShowNotifications(false)
+      }
+    }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [showNotifications])
 
   const handleDistrictClick = useCallback((districtName: string) => {
     if (districtName) {
@@ -124,6 +325,40 @@ export default function Home() {
     setMobileNavOpen(false)
     setShowMoreMenu(false)
   }, [])
+
+  const handleNotificationClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (showNotifications) { setShowNotifications(false); return }
+    if (!user?.id) return
+    try {
+      const res = await fetch(`/api/notifications?userId=${user.id}&limit=5`)
+      if (res.ok) {
+        const data = await res.json()
+        setNotifications(data.data || [])
+        setShowNotifications(true)
+      }
+    } catch {}
+  }
+
+  const getNotifIcon = (type: string) => {
+    switch (type) {
+      case 'emergency': return <Zap className="h-3.5 w-3.5 text-red-500" />
+      case 'warning': return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+      case 'issue_update': return <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+      case 'escalation': return <ChevronRight className="h-3.5 w-3.5 text-purple-500" />
+      case 'broadcast': return <Megaphone className="h-3.5 w-3.5 text-blue-500" />
+      default: return <Info className="h-3.5 w-3.5 text-green-500" />
+    }
+  }
+
+  const getNotifTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case 'emergency': return 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+      case 'warning': return 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+      case 'escalation': return 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+      default: return 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    }
+  }
 
   // Keyboard shortcut for search
   useEffect(() => {
@@ -150,7 +385,7 @@ export default function Home() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-white/95 backdrop-blur-xl shadow-sm">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-white/95 dark:bg-gray-900/95 dark:border-gray-800 backdrop-blur-xl shadow-sm">
         <div className="flex h-14 items-center px-3 sm:px-4 gap-2 sm:gap-3">
           {/* Mobile Menu Button */}
           <Button
@@ -251,22 +486,79 @@ export default function Home() {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex h-9 w-9 hover:bg-green-50 shrink-0"
+              className="hidden sm:flex h-9 w-9 hover:bg-green-50 dark:hover:bg-green-900/30 shrink-0"
+              onClick={toggleTheme}
             >
-              <Moon className="h-4 w-4" />
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
             {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9 hover:bg-green-50 shrink-0"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-red-600 text-[10px] text-white font-bold shadow-sm shadow-red-500/30 notification-badge">
-                3
-              </span>
-            </Button>
+            <div className="relative" data-notif-panel>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9 hover:bg-green-50 dark:hover:bg-green-900/30 shrink-0"
+                onClick={handleNotificationClick}
+              >
+                <Bell className="h-4 w-4" />
+                {notifCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-red-600 text-[10px] text-white font-bold shadow-sm shadow-red-500/30 notification-badge">
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </span>
+                )}
+              </Button>
+              {/* Notification Dropdown */}
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-11 z-[60] w-80 rounded-xl border border-border/50 bg-white dark:bg-gray-800 shadow-xl overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30 dark:bg-gray-700/50">
+                      <h3 className="text-sm font-semibold">Notifications</h3>
+                      {notifCount > 0 && (
+                        <span className="text-xs text-muted-foreground">{notifCount} unread</span>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                          <Bell className="h-6 w-6 mb-2 opacity-40" />
+                          <p className="text-xs">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((notif: any) => (
+                          <div
+                            key={notif.id}
+                            className={`flex items-start gap-3 px-4 py-3 border-b border-border/30 last:border-0 transition-colors hover:bg-muted/30 ${!notif.isRead ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}
+                          >
+                            <div className="mt-0.5 shrink-0">{getNotifIcon(notif.type)}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="text-sm font-medium truncate">{notif.title}</p>
+                                <span className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${getNotifTypeBadgeColor(notif.type)}`}>
+                                  {notif.type}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
+                              <p className="text-[10px] text-muted-foreground/60 mt-1">
+                                {new Date(notif.createdAt).toLocaleDateString('en-UG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            {!notif.isRead && (
+                              <div className="mt-1.5 h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Auth */}
             {isAuthenticated && user ? (
@@ -323,7 +615,33 @@ export default function Home() {
                     className="pl-9 bg-muted/30 border-border/40 focus:border-green-300 focus:ring-green-200/50 h-10 text-sm"
                   />
                 </div>
+                {/* Mobile Search Results */}
+                <AnimatePresence>
+                  {searchQuery.length > 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mt-2 border border-border/50 rounded-xl bg-white dark:bg-gray-800 shadow-lg overflow-hidden max-h-64 overflow-y-auto"
+                    >
+                      <SearchResults query={searchQuery} onResultClick={() => { setSearchOpen(false); setSearchQuery('') }} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Desktop Search Results Overlay */}
+        <AnimatePresence>
+          {searchOpen && !isMobile && searchQuery.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-14 left-0 right-0 z-50 border-b border-border/50 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl shadow-xl max-h-[70vh] overflow-y-auto"
+            >
+              <SearchResults query={searchQuery} onResultClick={() => { setSearchOpen(false); setSearchQuery('') }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -335,7 +653,7 @@ export default function Home() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="border-t border-border/50 lg:hidden overflow-hidden bg-white/95 backdrop-blur-xl"
+              className="border-t border-border/50 lg:hidden overflow-hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl"
             >
               <nav className="grid grid-cols-4 gap-1 p-2">
                 {tabs.map((tab) => {
@@ -402,7 +720,7 @@ export default function Home() {
             )}
 
             {activeTab === 'engagement' && (
-              <EngagementPanel />
+              <EngagementPanel districtFilter={selectedDistrict} />
             )}
 
             {activeTab === 'dashboard' && (
@@ -413,7 +731,7 @@ export default function Home() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-white/95 backdrop-blur-xl md:hidden safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-white/95 dark:bg-gray-900/95 dark:border-gray-800 backdrop-blur-xl md:hidden safe-area-bottom">
         <div className="flex items-center justify-around h-14">
           {mobileBottomTabs.map((tab) => {
             const Icon = tab.icon
@@ -496,7 +814,7 @@ export default function Home() {
       </nav>
 
       {/* Footer - Desktop only */}
-      <footer className="shrink-0 border-t border-border/50 bg-white/90 backdrop-blur-md hidden md:block">
+      <footer className="shrink-0 border-t border-border/50 bg-white/90 dark:bg-gray-900/90 dark:border-gray-800 backdrop-blur-md hidden md:block">
         <div className="h-0.5 w-full flex overflow-hidden">
           <div className="flex-1 bg-gradient-to-r from-green-500 to-green-600 shimmer-flag" />
           <div className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 shimmer-flag" style={{ animationDelay: '0.15s' }} />

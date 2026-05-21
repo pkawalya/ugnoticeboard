@@ -49,6 +49,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Global chunk load error handler — auto-reloads on stale chunks after deployment */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                function isChunkError(e){
+                  var m=e&&e.message||'';
+                  return m.indexOf('Loading chunk')!==-1||m.indexOf('Failed to load chunk')!==-1||m.indexOf('Loading CSS chunk')!==-1||m.indexOf('dynamically imported module')!==-1;
+                }
+                window.addEventListener('error',function(e){
+                  if(isChunkError(e.error||e)){window.location.reload();}
+                });
+                window.addEventListener('unhandledrejection',function(e){
+                  if(e.reason&&isChunkError(e.reason)){e.preventDefault();window.location.reload();}
+                });
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

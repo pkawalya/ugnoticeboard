@@ -59,24 +59,28 @@ const TILE_LAYERS = {
     iconKey: 'Sun' as const,
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
   },
   dark: {
     name: 'Dark',
     iconKey: 'Moon' as const,
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
   },
   satellite: {
     name: 'Satellite',
     iconKey: 'Satellite' as const,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+    subdomains: undefined as string | undefined,
   },
   topo: {
     name: 'Topo',
     iconKey: 'Mountain' as const,
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+    subdomains: 'abc',
   },
 } as const
 
@@ -681,7 +685,7 @@ export default function UgandaMap({
     const newTile = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: 19,
-      subdomains: tileType === 'satellite' || tileType === 'topo' ? undefined : 'abcd',
+      ...(tileConfig.subdomains ? { subdomains: tileConfig.subdomains } : {}),
     })
     newTile.addTo(map)
     tileLayerRef.current = newTile
@@ -962,7 +966,7 @@ export default function UgandaMap({
     const initialTile = L.tileLayer(tileConfig.url, {
       attribution: tileConfig.attribution,
       maxZoom: 19,
-      subdomains: tileType === 'satellite' || tileType === 'topo' ? undefined : 'abcd',
+      ...(tileConfig.subdomains ? { subdomains: tileConfig.subdomains } : {}),
     })
     initialTile.addTo(map)
     tileLayerRef.current = initialTile

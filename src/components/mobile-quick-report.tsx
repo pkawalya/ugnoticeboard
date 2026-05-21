@@ -9,6 +9,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -245,6 +246,10 @@ export function MobileQuickReport({
         side="bottom"
         className="h-[95vh] rounded-t-2xl border-t-2 border-green-200 dark:border-green-800 p-0 gap-0 overflow-hidden safe-area-bottom"
       >
+        <VisuallyHidden>
+          <SheetTitle>Report a Civic Issue</SheetTitle>
+          <SheetDescription>Multi-step form to report a civic issue in your community</SheetDescription>
+        </VisuallyHidden>
         {/* Drag handle */}
         <div className="flex justify-center pt-2 pb-1">
           <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />

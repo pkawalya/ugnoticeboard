@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { StatusBadge } from '@/components/status-badge'
 import { SeverityIndicator } from '@/components/severity-indicator'
 import { CategoryBadge } from '@/components/category-badge'
@@ -736,8 +737,6 @@ export function DetailSheet({ type, data, open, onOpenChange, onVote, voting }: 
           </div>
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{typeLabelMap[type]}</span>
         </div>
-        <SheetTitle className="text-base font-bold leading-tight sr-only">{titleMap[type]}</SheetTitle>
-        <SheetDescription className="sr-only">View details for this {type}</SheetDescription>
       </div>
 
       {/* Scrollable Content */}
@@ -822,6 +821,10 @@ export function DetailSheet({ type, data, open, onOpenChange, onVote, voting }: 
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[92vh]">
+          <VisuallyHidden>
+            <DrawerTitle>{titleMap[type]}</DrawerTitle>
+            <DrawerDescription>View details for this {type}</DrawerDescription>
+          </VisuallyHidden>
           {content}
         </DrawerContent>
       </Drawer>
@@ -831,6 +834,10 @@ export function DetailSheet({ type, data, open, onOpenChange, onVote, voting }: 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg p-0 gap-0 overflow-hidden">
+        <VisuallyHidden>
+          <SheetTitle>{titleMap[type]}</SheetTitle>
+          <SheetDescription>View details for this {type}</SheetDescription>
+        </VisuallyHidden>
         {content}
       </SheetContent>
     </Sheet>

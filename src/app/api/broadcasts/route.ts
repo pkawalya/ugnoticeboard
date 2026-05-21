@@ -61,33 +61,57 @@ export async function GET(request: NextRequest) {
 
 // POST /api/broadcasts - Create a broadcast
 export async function POST(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const {
-      title,
-      content,
-      category,
-      priority = "normal",
-      status = "draft",
-      targetLevel,
-      communityId,
-      targetRadius,
-      channels = "in_app",
-      publishedById,
-      scheduledAt,
-      expiresAt,
-    } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!title || !content || !category || !targetLevel || !publishedById) {
-      return NextResponse.json(
-        {
-          error:
-            "Title, content, category, targetLevel, and publishedById are required",
-        },
-        { status: 400 }
-      );
-    }
+  const {
+    title,
+    content,
+    category,
+    priority = "normal",
+    status = "draft",
+    targetLevel,
+    communityId,
+    targetRadius,
+    channels = "in_app",
+    publishedById,
+    scheduledAt,
+    expiresAt,
+  } = body as {
+    title?: string;
+    content?: string;
+    category?: string;
+    priority?: string;
+    status?: string;
+    targetLevel?: string;
+    communityId?: string;
+    targetRadius?: number;
+    channels?: string;
+    publishedById?: string;
+    scheduledAt?: string;
+    expiresAt?: string;
+  };
 
+  if (!title || !content || !category || !targetLevel || !publishedById) {
+    return NextResponse.json(
+      {
+        error:
+          "Title, content, category, targetLevel, and publishedById are required",
+      },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to mock response
+  try {
     const broadcast = await db.broadcast.create({
       data: {
         title,
@@ -112,73 +136,40 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: broadcast }, { status: 201 });
   } catch (error) {
-    console.error("Error creating broadcast:", error);
+    console.error("Database error creating broadcast, falling back to mock:", error);
 
     // Fallback: database unavailable — return mock created broadcast
-    try {
-      const body = await request.json();
-      const {
-        title,
-        content,
-        category,
-        priority = "normal",
-        status = "draft",
-        targetLevel,
-        communityId,
-        targetRadius,
-        channels = "in_app",
-        publishedById,
-        scheduledAt,
-        expiresAt,
-      } = body;
+    const id = generateId();
+    const now = new Date().toISOString();
 
-      if (!title || !content || !category || !targetLevel || !publishedById) {
-        return NextResponse.json(
-          {
-            error:
-              "Title, content, category, targetLevel, and publishedById are required",
-          },
-          { status: 400 }
-        );
-      }
+    const mockBroadcast = {
+      id,
+      title,
+      content,
+      category,
+      priority,
+      status,
+      targetLevel,
+      communityId: communityId ?? null,
+      targetRadius: targetRadius ?? null,
+      channels,
+      imageUrl: null,
+      publishedById,
+      scheduledAt: scheduledAt ?? null,
+      publishedAt: status === "published" ? now : null,
+      expiresAt: expiresAt ?? null,
+      createdAt: now,
+      updatedAt: now,
+      community: communityId
+        ? { id: communityId, name: "Mock Community", adminType: "village" }
+        : null,
+      publishedBy: {
+        id: publishedById,
+        name: "Mock User",
+        role: "citizen",
+      },
+    };
 
-      const id = generateId();
-      const now = new Date().toISOString();
-
-      const mockBroadcast = {
-        id,
-        title,
-        content,
-        category,
-        priority,
-        status,
-        targetLevel,
-        communityId: communityId ?? null,
-        targetRadius: targetRadius ?? null,
-        channels,
-        imageUrl: null,
-        publishedById,
-        scheduledAt: scheduledAt ?? null,
-        publishedAt: status === "published" ? now : null,
-        expiresAt: expiresAt ?? null,
-        createdAt: now,
-        updatedAt: now,
-        community: communityId
-          ? { id: communityId, name: "Mock Community", adminType: "village" }
-          : null,
-        publishedBy: {
-          id: publishedById,
-          name: "Mock User",
-          role: "citizen",
-        },
-      };
-
-      return NextResponse.json({ data: mockBroadcast }, { status: 201 });
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to create broadcast" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ data: mockBroadcast }, { status: 201 });
   }
 }

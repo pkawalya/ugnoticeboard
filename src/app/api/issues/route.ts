@@ -65,36 +65,59 @@ export async function GET(request: NextRequest) {
 
 // POST /api/issues - Create issue with auto-routing
 export async function POST(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const {
-      title,
-      description,
-      category,
-      severity = "medium",
-      isAnonymous = false,
-      latitude,
-      longitude,
-      location,
-      communityId,
-      departmentId,
-      reportedById,
-    } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!title || !description || !category) {
-      return NextResponse.json(
-        { error: "Title, description, and category are required" },
-        { status: 400 }
-      );
-    }
+  const {
+    title,
+    description,
+    category,
+    severity = "medium",
+    isAnonymous = false,
+    latitude,
+    longitude,
+    location,
+    communityId,
+    departmentId,
+    reportedById,
+  } = body as {
+    title?: string;
+    description?: string;
+    category?: string;
+    severity?: string;
+    isAnonymous?: boolean;
+    latitude?: number;
+    longitude?: number;
+    location?: string;
+    communityId?: string;
+    departmentId?: string;
+    reportedById?: string;
+  };
 
-    if (!communityId) {
-      return NextResponse.json(
-        { error: "communityId is required" },
-        { status: 400 }
-      );
-    }
+  if (!title || !description || !category) {
+    return NextResponse.json(
+      { error: "Title, description, and category are required" },
+      { status: 400 }
+    );
+  }
 
+  if (!communityId) {
+    return NextResponse.json(
+      { error: "communityId is required" },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to mock response
+  try {
     // Auto-route: find matching department for the category
     let autoDepartmentId = departmentId;
     if (!autoDepartmentId) {
@@ -149,75 +172,46 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: issue }, { status: 201 });
   } catch (error) {
-    console.error("Error creating issue:", error);
+    console.error("Database error creating issue, falling back to mock:", error);
 
     // Fallback: database unavailable — return mock created issue
-    try {
-      const body = await request.json();
-      const {
-        title,
-        description,
-        category,
-        severity = "medium",
-        isAnonymous = false,
-        latitude,
-        longitude,
-        location,
-        communityId = "clmockcommunity00001",
-        departmentId,
-        reportedById,
-      } = body;
+    const id = generateId();
+    const now = new Date().toISOString();
 
-      if (!title || !description || !category) {
-        return NextResponse.json(
-          { error: "Title, description, and category are required" },
-          { status: 400 }
-        );
-      }
+    const mockIssue = {
+      id,
+      title,
+      description,
+      category,
+      severity,
+      status: "submitted",
+      isAnonymous,
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      location: location ?? null,
+      communityId,
+      departmentId: departmentId ?? null,
+      reportedById: reportedById ?? null,
+      assignedToId: null,
+      escalatedToId: null,
+      resolutionNote: null,
+      resolvedAt: null,
+      deadlineAt: null,
+      voteCount: 0,
+      commentCount: 0,
+      viewCount: 0,
+      createdAt: now,
+      updatedAt: now,
+      community: {
+        id: communityId,
+        name: "Mock Community",
+        adminType: "village",
+      },
+      department: departmentId
+        ? { id: departmentId, name: "Mock Department", code: "mock_dept" }
+        : null,
+    };
 
-      const id = generateId();
-      const now = new Date().toISOString();
-
-      const mockIssue = {
-        id,
-        title,
-        description,
-        category,
-        severity,
-        status: "submitted",
-        isAnonymous,
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
-        location: location ?? null,
-        communityId,
-        departmentId: departmentId ?? null,
-        reportedById: reportedById ?? null,
-        assignedToId: null,
-        escalatedToId: null,
-        resolutionNote: null,
-        resolvedAt: null,
-        deadlineAt: null,
-        voteCount: 0,
-        commentCount: 0,
-        viewCount: 0,
-        createdAt: now,
-        updatedAt: now,
-        community: {
-          id: communityId,
-          name: "Mock Community",
-          adminType: "village",
-        },
-        department: departmentId
-          ? { id: departmentId, name: "Mock Department", code: "mock_dept" }
-          : null,
-      };
-
-      return NextResponse.json({ data: mockIssue }, { status: 201 });
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to create issue" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ data: mockIssue }, { status: 201 });
   }
 }

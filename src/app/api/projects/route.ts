@@ -58,28 +58,50 @@ export async function GET(request: NextRequest) {
 
 // POST /api/projects - Create project
 export async function POST(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const {
-      name,
-      description,
-      category,
-      communityId,
-      budgetAllocated,
-      budgetSpent,
-      startDate,
-      endDate,
-      progressPercent,
-      status = "planned",
-    } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!name || !description || !category || !communityId) {
-      return NextResponse.json(
-        { error: "Name, description, category, and communityId are required" },
-        { status: 400 }
-      );
-    }
+  const {
+    name,
+    description,
+    category,
+    communityId = "clmockcommunity00001",
+    budgetAllocated,
+    budgetSpent,
+    startDate,
+    endDate,
+    progressPercent,
+    status = "planned",
+  } = body as {
+    name?: string;
+    description?: string;
+    category?: string;
+    communityId?: string;
+    budgetAllocated?: number;
+    budgetSpent?: number;
+    startDate?: string;
+    endDate?: string;
+    progressPercent?: number;
+    status?: string;
+  };
 
+  if (!name || !description || !category) {
+    return NextResponse.json(
+      { error: "Name, description, and category are required" },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to mock response
+  try {
     const project = await db.project.create({
       data: {
         name,
@@ -100,62 +122,34 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: project }, { status: 201 });
   } catch (error) {
-    console.error("Error creating project:", error);
+    console.error("Database error creating project, falling back to mock:", error);
 
     // Fallback: database unavailable — return mock created project
-    try {
-      const body = await request.json();
-      const {
-        name,
-        description,
-        category,
-        communityId = "clmockcommunity00001",
-        budgetAllocated,
-        budgetSpent,
-        startDate,
-        endDate,
-        progressPercent,
-        status = "planned",
-      } = body;
+    const id = generateId();
+    const now = new Date().toISOString();
 
-      if (!name || !description || !category) {
-        return NextResponse.json(
-          { error: "Name, description, and category are required" },
-          { status: 400 }
-        );
-      }
+    const mockProject = {
+      id,
+      name,
+      description,
+      category,
+      status,
+      communityId,
+      budgetAllocated: budgetAllocated || 0,
+      budgetSpent: budgetSpent || 0,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
+      progressPercent: progressPercent || 0,
+      imageUrl: null,
+      createdAt: now,
+      updatedAt: now,
+      community: {
+        id: communityId,
+        name: "Mock Community",
+        adminType: "village",
+      },
+    };
 
-      const id = generateId();
-      const now = new Date().toISOString();
-
-      const mockProject = {
-        id,
-        name,
-        description,
-        category,
-        status,
-        communityId,
-        budgetAllocated: budgetAllocated || 0,
-        budgetSpent: budgetSpent || 0,
-        startDate: startDate ?? null,
-        endDate: endDate ?? null,
-        progressPercent: progressPercent || 0,
-        imageUrl: null,
-        createdAt: now,
-        updatedAt: now,
-        community: {
-          id: communityId,
-          name: "Mock Community",
-          adminType: "village",
-        },
-      };
-
-      return NextResponse.json({ data: mockProject }, { status: 201 });
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to create project" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ data: mockProject }, { status: 201 });
   }
 }

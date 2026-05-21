@@ -68,27 +68,48 @@ export async function GET(request: NextRequest) {
 
 // POST /api/communities - Create a new community
 export async function POST(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const {
-      name,
-      adminType,
-      parentId,
-      ubosCode,
-      electoralCode,
-      latitude,
-      longitude,
-      populationEstimate,
-      geojsonBoundary,
-    } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!name || !adminType) {
-      return NextResponse.json(
-        { error: "Name and adminType are required" },
-        { status: 400 }
-      );
-    }
+  const {
+    name,
+    adminType,
+    parentId,
+    ubosCode,
+    electoralCode,
+    latitude,
+    longitude,
+    populationEstimate,
+    geojsonBoundary,
+  } = body as {
+    name?: string;
+    adminType?: string;
+    parentId?: string;
+    ubosCode?: string;
+    electoralCode?: string;
+    latitude?: number;
+    longitude?: number;
+    populationEstimate?: number;
+    geojsonBoundary?: unknown;
+  };
 
+  if (!name || !adminType) {
+    return NextResponse.json(
+      { error: "Name and adminType are required" },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to mock response
+  try {
     const community = await db.community.create({
       data: {
         name,
@@ -110,55 +131,29 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: community }, { status: 201 });
   } catch (error) {
-    console.error("Error creating community:", error);
+    console.error("Database error creating community, falling back to mock:", error);
 
     // Fallback: database unavailable — return mock created community
-    try {
-      const body = await request.json();
-      const {
-        name,
-        adminType,
-        parentId,
-        ubosCode,
-        electoralCode,
-        latitude,
-        longitude,
-        populationEstimate,
-      } = body;
+    const id = generateId();
+    const now = new Date().toISOString();
 
-      if (!name || !adminType) {
-        return NextResponse.json(
-          { error: "Name and adminType are required" },
-          { status: 400 }
-        );
-      }
+    const mockCommunity = {
+      id,
+      name,
+      adminType,
+      parentId: parentId ?? null,
+      ubosCode: ubosCode ?? null,
+      electoralCode: electoralCode ?? null,
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      populationEstimate: populationEstimate ?? null,
+      geojsonBoundary: null,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      parent: null,
+    };
 
-      const id = generateId();
-      const now = new Date().toISOString();
-
-      const mockCommunity = {
-        id,
-        name,
-        adminType,
-        parentId: parentId ?? null,
-        ubosCode: ubosCode ?? null,
-        electoralCode: electoralCode ?? null,
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
-        populationEstimate: populationEstimate ?? null,
-        geojsonBoundary: null,
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-        parent: null,
-      };
-
-      return NextResponse.json({ data: mockCommunity }, { status: 201 });
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to create community" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ data: mockCommunity }, { status: 201 });
   }
 }

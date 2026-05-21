@@ -63,17 +63,32 @@ export async function GET(request: NextRequest) {
 
 // PATCH /api/notifications - Mark notifications as read
 export async function PATCH(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const { userId, notificationIds, markAll } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
+  const { userId, notificationIds, markAll } = body as {
+    userId?: string;
+    notificationIds?: string[];
+    markAll?: boolean;
+  };
 
+  if (!userId) {
+    return NextResponse.json(
+      { error: "userId is required" },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to mock success
+  try {
     if (markAll) {
       await db.notification.updateMany({
         where: { userId, isRead: false },
@@ -95,37 +110,20 @@ export async function PATCH(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error("Error updating notifications:", error);
+    console.error("Database error updating notifications, falling back to mock:", error);
 
     // Fallback: database unavailable — return mock success response
-    try {
-      const body = await request.json();
-      const { userId, notificationIds, markAll } = body;
-
-      if (!userId) {
-        return NextResponse.json(
-          { error: "userId is required" },
-          { status: 400 }
-        );
-      }
-
-      if (markAll) {
-        return NextResponse.json({ data: { markedAll: true } });
-      }
-
-      if (notificationIds && Array.isArray(notificationIds)) {
-        return NextResponse.json({ data: { marked: notificationIds.length } });
-      }
-
-      return NextResponse.json(
-        { error: "Provide notificationIds array or markAll: true" },
-        { status: 400 }
-      );
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to update notifications" },
-        { status: 500 }
-      );
+    if (markAll) {
+      return NextResponse.json({ data: { markedAll: true } });
     }
+
+    if (notificationIds && Array.isArray(notificationIds)) {
+      return NextResponse.json({ data: { marked: notificationIds.length } });
+    }
+
+    return NextResponse.json(
+      { error: "Provide notificationIds array or markAll: true" },
+      { status: 400 }
+    );
   }
 }

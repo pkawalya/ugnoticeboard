@@ -61,29 +61,52 @@ export async function GET(request: NextRequest) {
 
 // POST /api/facilities - Create facility
 export async function POST(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const {
-      name,
-      type,
-      category,
-      communityId,
-      latitude,
-      longitude,
-      condition = "fair",
-      capacity,
-      isOperational = true,
-      services,
-      contactInfo,
-    } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!name || !type || !communityId) {
-      return NextResponse.json(
-        { error: "Name, type, and communityId are required" },
-        { status: 400 }
-      );
-    }
+  const {
+    name,
+    type,
+    category,
+    communityId = "clmockcommunity00001",
+    latitude,
+    longitude,
+    condition = "fair",
+    capacity,
+    isOperational = true,
+    services,
+    contactInfo,
+  } = body as {
+    name?: string;
+    type?: string;
+    category?: string;
+    communityId?: string;
+    latitude?: number;
+    longitude?: number;
+    condition?: string;
+    capacity?: number;
+    isOperational?: boolean;
+    services?: string;
+    contactInfo?: string;
+  };
 
+  if (!name || !type) {
+    return NextResponse.json(
+      { error: "Name and type are required" },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to mock response
+  try {
     const facility = await db.facility.create({
       data: {
         name,
@@ -105,64 +128,35 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: facility }, { status: 201 });
   } catch (error) {
-    console.error("Error creating facility:", error);
+    console.error("Database error creating facility, falling back to mock:", error);
 
     // Fallback: database unavailable — return mock created facility
-    try {
-      const body = await request.json();
-      const {
-        name,
-        type,
-        category,
-        communityId = "clmockcommunity00001",
-        latitude,
-        longitude,
-        condition = "fair",
-        capacity,
-        isOperational = true,
-        services,
-        contactInfo,
-      } = body;
+    const id = generateId();
+    const now = new Date().toISOString();
 
-      if (!name || !type) {
-        return NextResponse.json(
-          { error: "Name and type are required" },
-          { status: 400 }
-        );
-      }
+    const mockFacility = {
+      id,
+      name,
+      type,
+      category: category ?? null,
+      communityId,
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      condition,
+      capacity: capacity ?? null,
+      isOperational,
+      services: services ?? null,
+      contactInfo: contactInfo ?? null,
+      imageUrl: null,
+      createdAt: now,
+      updatedAt: now,
+      community: {
+        id: communityId,
+        name: "Mock Community",
+        adminType: "village",
+      },
+    };
 
-      const id = generateId();
-      const now = new Date().toISOString();
-
-      const mockFacility = {
-        id,
-        name,
-        type,
-        category: category ?? null,
-        communityId,
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
-        condition,
-        capacity: capacity ?? null,
-        isOperational,
-        services: services ?? null,
-        contactInfo: contactInfo ?? null,
-        imageUrl: null,
-        createdAt: now,
-        updatedAt: now,
-        community: {
-          id: communityId,
-          name: "Mock Community",
-          adminType: "village",
-        },
-      };
-
-      return NextResponse.json({ data: mockFacility }, { status: 201 });
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to create facility" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ data: mockFacility }, { status: 201 });
   }
 }

@@ -108,3 +108,26 @@ Stage Summary:
 - Facility popup now has "View Details" button: switches to Facilities tab + auto-opens that facility's detail sheet
 - Facility popup now has "Report" button: switches to Issues tab + opens Report Issue form
 - All popup buttons properly communicate from Leaflet HTML popups to React component tree via custom events + refs
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix ReferenceError: Cannot access 'tL' before initialization crashing production app
+
+Work Log:
+- Investigated the `ReferenceError: Cannot access 'tL' before initialization` error in the production minified bundle
+- Read all key source files: page.tsx, layout.tsx, error-boundary.tsx, use-theme.ts, use-mobile.ts, use-auth.ts, query-provider.tsx, uganda-map.tsx, mobile-quick-report.tsx, auth-dialogs.tsx, live-feed.tsx, issues-panel.tsx, engagement-panel.tsx
+- Built project locally - build succeeded (error is runtime only, not build-time)
+- Started dev server and production server to verify behavior
+- Identified root cause: circular dependency chain in the production minified bundle caused by static imports of heavy components in page.tsx
+- Applied fix: Changed all static component imports to `next/dynamic` imports with `ssr: false` to break circular dependency chains
+- Components converted to dynamic imports: UgandaMap, IssuesPanel, BroadcastsPanel, ProjectsPanel, FacilitiesPanel, EngagementPanel, DashboardPanel, AuthDialogs, MobileQuickReport
+- Rebuilt and tested locally - production build works correctly
+- Pushed fix to GitHub (commit 4990c13) for Vercel auto-deploy
+- Verified production site at ugnoticeboard.vercel.app returns 200 with correct HTML
+
+Stage Summary:
+- Fixed the `ReferenceError: Cannot access before initialization` crash using dynamic imports
+- All 9 heavy components now load via next/dynamic, breaking circular dependency chains
+- Production site is live and serving correct HTML
+- This also improves code splitting and initial page load performance

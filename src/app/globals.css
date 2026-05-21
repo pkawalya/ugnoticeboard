@@ -1015,6 +1015,49 @@
 }
 
 /* ============================================================
+   Mobile-first Enhancements
+   ============================================================ */
+
+@media (max-width: 767px) {
+  .mobile-header-compact {
+    height: 48px !important;
+  }
+
+  .fab-report-pulse {
+    animation: fabPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes fabPulse {
+    0%, 100% { box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4); }
+    50% { box-shadow: 0 4px 25px rgba(22, 163, 74, 0.7); }
+  }
+
+  .mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .mobile-menu-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 71;
+    max-height: 70vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+    background: white;
+    overflow-y: auto;
+  }
+
+  .dark .mobile-menu-panel {
+    background: #111827;
+  }
+}
+
+/* ============================================================
    Marker Entrance Animation
    ============================================================ */
 

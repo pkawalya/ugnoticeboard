@@ -212,21 +212,6 @@ function SearchResults({ query, onResultClick }: { query: string; onResultClick:
   )
 }
 
-// Mobile bottom nav - 4 tabs with center report FAB
-const mobileBottomTabs = [
-  { id: 'map' as const, label: 'Map', icon: Map },
-  { id: 'issues' as const, label: 'Issues', icon: AlertTriangle },
-  // Center gap for FAB
-  { id: 'broadcasts' as const, label: 'Alerts', icon: Megaphone },
-  { id: 'dashboard' as const, label: 'Stats', icon: BarChart3 },
-]
-
-const moreTabs = [
-  { id: 'projects' as const, label: 'Projects', icon: HardHat },
-  { id: 'facilities' as const, label: 'Facilities', icon: Building2 },
-  { id: 'engagement' as const, label: 'Engage', icon: Users },
-]
-
 // Uganda Coat of Arms Shield SVG
 function UgandaShield({ className }: { className?: string }) {
   return (
@@ -266,12 +251,19 @@ export default function Home() {
   const [notifications, setNotifications] = useState<any[]>([])
   const { user, isAuthenticated, logout } = useAuthStore()
   const isMobile = useIsMobile()
-  const { theme, toggleTheme } = useThemeStore()
+  const { theme, toggleTheme, hydrated, hydrate } = useThemeStore()
 
-  // Initialize theme on mount
+  // Hydrate theme from localStorage on client mount (avoids SSR mismatch)
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-  }, [theme])
+    hydrate()
+  }, [hydrate])
+
+  // Prevent flash of wrong theme
+  useEffect(() => {
+    if (hydrated) {
+      document.documentElement.classList.toggle('dark', theme === 'dark')
+    }
+  }, [theme, hydrated])
 
   // Close more menu when clicking outside
   useEffect(() => {
@@ -317,6 +309,7 @@ export default function Home() {
   const [autoOpenFacilityId, setAutoOpenFacilityId] = useState<string | null>(null)
   const [showIssueForm, setShowIssueForm] = useState(false)
   const [quickReportOpen, setQuickReportOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleDistrictClick = useCallback((districtName: string) => {
     if (districtName) {
@@ -344,6 +337,7 @@ export default function Home() {
     setActiveTab(tabId)
     setMobileNavOpen(false)
     setShowMoreMenu(false)
+    setMobileMenuOpen(false)
   }, [])
 
   const handleNotificationClick = async (e: React.MouseEvent) => {
@@ -406,12 +400,12 @@ export default function Home() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-white/95 dark:bg-gray-900/95 dark:border-gray-800 backdrop-blur-xl shadow-sm">
-        <div className="flex h-14 items-center px-3 sm:px-4 gap-2 sm:gap-3">
+        <div className="flex h-12 md:h-14 items-center px-2 md:px-3 sm:px-4 gap-1.5 md:gap-2 sm:gap-3">
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden h-9 w-9 hover:bg-green-50 shrink-0"
+            className="lg:hidden h-8 w-8 md:h-9 md:w-9 hover:bg-green-50 shrink-0"
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
           >
             {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -419,9 +413,9 @@ export default function Home() {
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="relative flex h-9 w-9 items-center justify-center">
-              <UgandaShield className="h-9 w-9" />
-              <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-yellow-400 border-2 border-white shadow-sm" />
+            <div className="relative flex h-7 w-7 md:h-9 md:w-9 items-center justify-center">
+              <UgandaShield className="h-7 w-7 md:h-9 md:w-9" />
+              <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 md:h-3 md:w-3 rounded-full bg-yellow-400 border-2 border-white shadow-sm" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-sm font-bold leading-tight tracking-tight bg-gradient-to-r from-green-700 to-green-600 bg-clip-text text-transparent">
@@ -496,24 +490,24 @@ export default function Home() {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-9 w-9 hover:bg-green-50 shrink-0"
+              className="lg:hidden h-8 w-8 md:h-9 md:w-9 hover:bg-green-50 shrink-0"
               onClick={() => setSearchOpen(!searchOpen)}
             >
               <Search className="h-4 w-4" />
             </Button>
 
-            {/* Dark Mode Toggle */}
+            {/* Dark Mode Toggle - hidden on mobile, accessible via hamburger & menu overlay */}
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex h-9 w-9 hover:bg-green-50 dark:hover:bg-green-900/30 shrink-0"
+              className="hidden md:flex h-9 w-9 hover:bg-green-50 dark:hover:bg-green-900/30 shrink-0"
               onClick={toggleTheme}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
-            {/* Notifications */}
-            <div className="relative" data-notif-panel>
+            {/* Notifications - hidden on mobile, accessible via hamburger & menu overlay */}
+            <div className="relative hidden md:block" data-notif-panel>
               <Button
                 variant="ghost"
                 size="icon"
@@ -695,13 +689,50 @@ export default function Home() {
                   )
                 })}
               </nav>
+              {/* Mobile-only: Dark Mode & Notifications */}
+              <div className="md:hidden border-t border-border/30 px-3 py-2 flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 justify-start h-10 text-sm hover:bg-green-50 dark:hover:bg-green-900/30"
+                  onClick={toggleTheme}
+                >
+                  {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 justify-start h-10 text-sm relative hover:bg-green-50 dark:hover:bg-green-900/30"
+                  onClick={async () => { 
+                    setMobileNavOpen(false)
+                    if (!user?.id) return
+                    try {
+                      const res = await fetch(`/api/notifications?userId=${user.id}&limit=5`)
+                      if (res.ok) {
+                        const data = await res.json()
+                        setNotifications(data.data || [])
+                      }
+                    } catch {}
+                    setMobileMenuOpen(true)
+                  }}
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Notifications
+                  {notifCount > 0 && (
+                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold">
+                      {notifCount > 9 ? '9+' : notifCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden pb-14 md:pb-0">
+      <main className="flex-1 overflow-hidden pb-14 md:pb-0 pt-safe">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -760,136 +791,238 @@ export default function Home() {
 
       {/* Mobile Bottom Navigation with Center FAB */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-area-bottom">
-        {/* More menu dropdown - positioned above nav */}
-        <AnimatePresence>
-          {showMoreMenu && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute bottom-16 right-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-border/50 overflow-hidden min-w-[170px] z-[60]"
-            >
-              {moreTabs.map((tab) => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabChange(tab.id)}
-                    className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
-                    <ChevronRight className="h-3 w-3 ml-auto" />
-                  </button>
-                )
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* FAB Button - positioned above the nav bar */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-6 z-10">
+        <div className="absolute left-1/2 -translate-x-1/2 -top-7 z-10">
           <button
             onClick={() => {
-              setShowMoreMenu(false)
               setQuickReportOpen(true)
             }}
-            className="fab-report-btn relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white shadow-lg shadow-green-600/40 transition-all duration-200 active:scale-90 hover:shadow-xl hover:shadow-green-600/50"
+            className="fab-report-btn fab-report-pulse relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white shadow-lg shadow-green-600/40 transition-all duration-200 active:scale-90 hover:shadow-xl hover:shadow-green-600/50"
             aria-label="Report an issue"
           >
-            <Plus className="h-7 w-7" strokeWidth={2.5} />
+            <Plus className="h-8 w-8" strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Nav Bar */}
         <div className="border-t border-border/50 bg-white/95 dark:bg-gray-900/95 dark:border-gray-800 backdrop-blur-xl">
           <div className="flex items-center h-14 px-1">
-            {/* Left tabs: Map, Issues */}
-            {mobileBottomTabs.slice(0, 2).map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
-                    isActive ? 'text-green-700' : 'text-muted-foreground'
-                  }`}
-                >
-                  <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
-                  <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobile-nav-dot"
-                      className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </button>
-              )
-            })}
+            {/* Left tabs: Home, Issues */}
+            <button
+              onClick={() => handleTabChange('map')}
+              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                activeTab === 'map' ? 'text-green-700' : 'text-muted-foreground'
+              }`}
+            >
+              <Map className={`h-5 w-5 transition-transform duration-200 ${activeTab === 'map' ? 'scale-110' : ''}`} />
+              <span className={`text-[10px] font-medium ${activeTab === 'map' ? 'font-semibold' : ''}`}>Home</span>
+              {activeTab === 'map' && (
+                <motion.div
+                  layoutId="mobile-nav-dot-home"
+                  className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => handleTabChange('issues')}
+              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                activeTab === 'issues' ? 'text-green-700' : 'text-muted-foreground'
+              }`}
+            >
+              <AlertTriangle className={`h-5 w-5 transition-transform duration-200 ${activeTab === 'issues' ? 'scale-110' : ''}`} />
+              <span className={`text-[10px] font-medium ${activeTab === 'issues' ? 'font-semibold' : ''}`}>Issues</span>
+              {activeTab === 'issues' && (
+                <motion.div
+                  layoutId="mobile-nav-dot-issues"
+                  className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
 
             {/* Center spacer for FAB */}
             <div className="flex-1 flex items-center justify-center h-full">
-              <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 mt-5">Report</span>
+              <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 mt-6">Report</span>
             </div>
 
-            {/* Right tabs: Alerts, Stats/More */}
-            {mobileBottomTabs.slice(2).map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
-                    isActive ? 'text-green-700' : 'text-muted-foreground'
-                  }`}
-                >
-                  <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
-                  <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobile-nav-dot-right"
-                      className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </button>
-              )
-            })}
+            {/* Right tabs: Alerts, Menu */}
+            <button
+              onClick={() => handleTabChange('broadcasts')}
+              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                activeTab === 'broadcasts' ? 'text-green-700' : 'text-muted-foreground'
+              }`}
+            >
+              <Megaphone className={`h-5 w-5 transition-transform duration-200 ${activeTab === 'broadcasts' ? 'scale-110' : ''}`} />
+              <span className={`text-[10px] font-medium ${activeTab === 'broadcasts' ? 'font-semibold' : ''}`}>Alerts</span>
+              {activeTab === 'broadcasts' && (
+                <motion.div
+                  layoutId="mobile-nav-dot-alerts"
+                  className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
 
-            {/* More button */}
-            <div className="relative flex-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowMoreMenu(!showMoreMenu)
-                }}
-                className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-all duration-200 ${
-                  (activeTab === 'projects' || activeTab === 'facilities' || activeTab === 'engagement') ? 'text-green-700' : 'text-muted-foreground'
-                }`}
-              >
-                <MoreHorizontal className="h-5 w-5" />
-                <span className="text-[10px] font-medium">More</span>
-                {(activeTab === 'projects' || activeTab === 'facilities' || activeTab === 'engagement') && (
-                  <motion.div
-                    layoutId="mobile-nav-dot-more"
-                    className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                if (!user?.id) {
+                  setMobileMenuOpen(true)
+                  return
+                }
+                // Fetch notifications when opening menu
+                fetch(`/api/notifications?userId=${user.id}&limit=5`)
+                  .then(res => res.ok ? res.json() : null)
+                  .then(data => {
+                    if (data?.data) setNotifications(data.data)
+                  })
+                  .catch(() => {})
+                setMobileMenuOpen(true)
+              }}
+              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                (activeTab === 'projects' || activeTab === 'facilities' || activeTab === 'engagement' || activeTab === 'dashboard') ? 'text-green-700' : 'text-muted-foreground'
+              }`}
+            >
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="text-[10px] font-medium">Menu</span>
+              {(activeTab === 'projects' || activeTab === 'facilities' || activeTab === 'engagement' || activeTab === 'dashboard') && (
+                <motion.div
+                  layoutId="mobile-nav-dot-menu"
+                  className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="mobile-menu-overlay"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="mobile-menu-panel dark:bg-gray-900"
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+              </div>
+
+              {/* Menu Grid */}
+              <div className="px-4 pb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Explore</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'projects' as TabId, label: 'Projects', icon: HardHat, desc: 'Development projects', color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' },
+                    { id: 'facilities' as TabId, label: 'Facilities', icon: Building2, desc: 'Public services', color: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400' },
+                    { id: 'engagement' as TabId, label: 'Engagement', icon: Users, desc: 'Community voice', color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400' },
+                    { id: 'dashboard' as TabId, label: 'Dashboard', icon: BarChart3, desc: 'Analytics & stats', color: 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' },
+                  ].map((item) => {
+                    const Icon = item.icon
+                    const isActive = activeTab === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleTabChange(item.id)}
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 min-h-[100px] ${
+                          isActive
+                            ? 'border-green-500 bg-green-50/50 dark:bg-green-900/20 shadow-sm'
+                            : 'border-border/40 bg-background hover:border-green-300 hover:bg-green-50/30 dark:hover:bg-green-900/10'
+                        }`}
+                      >
+                        <div className={`flex items-center justify-center w-12 h-12 rounded-xl ${item.color}`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <span className={`text-sm font-semibold ${isActive ? 'text-green-700 dark:text-green-400' : 'text-foreground'}`}>
+                          {item.label}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{item.desc}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Notifications section */}
+              {notifications.length > 0 && (
+                <div className="px-4 pb-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                    <Bell className="h-3.5 w-3.5" />
+                    Recent Notifications
+                    {notifCount > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-400">
+                        {notifCount} unread
+                      </span>
+                    )}
+                  </h3>
+                  <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                    {notifications.slice(0, 3).map((notif: any) => (
+                      <div
+                        key={notif.id}
+                        className={`flex items-start gap-2 px-3 py-2 rounded-lg text-left ${!notif.isRead ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}
+                      >
+                        <div className="mt-0.5 shrink-0">{getNotifIcon(notif.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{notif.title}</p>
+                          <p className="text-[10px] text-muted-foreground line-clamp-1">{notif.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick actions */}
+              <div className="px-4 pb-6 safe-area-bottom">
+                <h3 className="text-sm font-semibold text-muted-foreground mb-2">Settings</h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 justify-start text-sm rounded-xl"
+                    onClick={toggleTheme}
+                  >
+                    {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  </Button>
+                  {isAuthenticated ? (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-11 justify-start text-sm rounded-xl text-red-600 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      onClick={() => { logout(); setMobileMenuOpen(false) }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-11 justify-start text-sm rounded-xl text-green-600 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20"
+                      onClick={() => { setMobileMenuOpen(false); setLoginOpen(true) }}
+                    >
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Sign In
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Quick Report Sheet */}
       <MobileQuickReport

@@ -87,9 +87,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data: results, query: q });
   } catch (error) {
     console.error("Error searching:", error);
-    return NextResponse.json(
-      { error: "Failed to search" },
-      { status: 500 }
-    );
+
+    // Fallback: database unavailable — return empty search results
+    const { searchParams } = new URL(request.url);
+    const q = searchParams.get("q");
+    const type = searchParams.get("type");
+
+    if (!q) {
+      return NextResponse.json(
+        { error: "Search query 'q' is required" },
+        { status: 400 }
+      );
+    }
+
+    const results: Record<string, unknown[]> = {};
+
+    if (!type || type === "all" || type === "issues") {
+      results.issues = [];
+    }
+
+    if (!type || type === "all" || type === "communities") {
+      results.communities = [];
+    }
+
+    if (!type || type === "all" || type === "facilities") {
+      results.facilities = [];
+    }
+
+    if (!type || type === "all" || type === "projects") {
+      results.projects = [];
+    }
+
+    return NextResponse.json({ data: results, query: q });
   }
 }

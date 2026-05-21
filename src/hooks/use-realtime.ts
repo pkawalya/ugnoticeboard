@@ -95,7 +95,7 @@ interface RealtimeState {
 
 const MAX_RECENT_EVENTS = 100
 
-export const useRealtimeStore = create<RealtimeState>((set) => ({
+export const useRealtimeStore = create<RealtimeState>()((set) => ({
   // Connection state
   isConnected: false,
   socketId: null,

@@ -11,9 +11,9 @@ interface ThemeState {
   hydrate: () => void
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
+export const useThemeStore = create<ThemeState>()((set) => ({
   // Always start with 'light' to match SSR — hydrate reads localStorage on client
-  theme: 'light',
+  theme: 'light' as Theme,
   hydrated: false,
 
   hydrate: () => {
@@ -27,7 +27,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
     }
   },
 
-  setTheme: (theme) => {
+  setTheme: (theme: Theme) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('ug-theme', theme)
       document.documentElement.classList.toggle('dark', theme === 'dark')

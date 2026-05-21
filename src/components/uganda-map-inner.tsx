@@ -43,38 +43,52 @@ import {
   Server,
 } from 'lucide-react'
 
-// Fix Leaflet default icon issue
-L.Icon.Default.mergeOptions({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png' })
+// Fix Leaflet default icon issue - deferred to avoid module-level side effects in production builds
+let _leafletIconFixed = false
+function fixLeafletIcon() {
+  if (_leafletIconFixed) return
+  _leafletIconFixed = true
+  L.Icon.Default.mergeOptions({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png' })
+}
 
 // ─── Tile Layer Definitions ─────────────────────────────────────────
+// Use string identifiers instead of icon references at module level to avoid TDZ issues
 const TILE_LAYERS = {
   light: {
     name: 'Light',
-    icon: Sun,
+    iconKey: 'Sun' as const,
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
   },
   dark: {
     name: 'Dark',
-    icon: Moon,
+    iconKey: 'Moon' as const,
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
   },
   satellite: {
     name: 'Satellite',
-    icon: Satellite,
+    iconKey: 'Satellite' as const,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
   },
   topo: {
     name: 'Topo',
-    icon: Mountain,
+    iconKey: 'Mountain' as const,
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
   },
 } as const
 
 type TileType = keyof typeof TILE_LAYERS
+
+// Map icon keys to actual icon components (resolved lazily)
+const TILE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Sun,
+  Moon,
+  Satellite,
+  Mountain,
+}
 
 // ─── Color Utilities ─────────────────────────────────────────────────
 
@@ -921,6 +935,9 @@ export default function UgandaMap({
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
 
+    // Fix Leaflet default icon on first map init
+    fixLeafletIcon()
+
     const map = L.map(mapRef.current, {
       center: [1.3733, 32.2903],
       zoom: 7,
@@ -1178,7 +1195,7 @@ export default function UgandaMap({
             <div className="p-1.5">
               {(Object.entries(TILE_LAYERS) as [TileType, (typeof TILE_LAYERS)[TileType]][]).map(
                 ([key, config]) => {
-                  const Icon = config.icon
+                  const Icon = TILE_ICONS[config.iconKey]
                   return (
                     <button
                       key={key}

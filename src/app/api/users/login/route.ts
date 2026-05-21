@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { mockUsers } from "../register/route";
+import { mockUsers } from "@/lib/mock-user-store";
 
 // POST /api/users/login - Simple demo login
 export async function POST(request: NextRequest) {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Search in-memory mock users
-      let foundUser: (typeof mockUsers extends Map<string, infer V> ? V : never) | null = null;
+      let foundUser: ReturnType<typeof mockUsers.get> | null = null;
       for (const u of mockUsers.values()) {
         if (email && u.email === email) {
           foundUser = u;

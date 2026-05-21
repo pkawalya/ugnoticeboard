@@ -1,29 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-
-// In-memory store for users when database is unavailable
-const mockUsers = new Map<
-  string,
-  {
-    id: string;
-    email?: string;
-    phone?: string;
-    name?: string;
-    role: string;
-    isVerified: boolean;
-    trustScore: number;
-    preferredLanguage: string;
-    createdAt: string;
-    passwordHash: string;
-    isOfficial: boolean;
-    avatarUrl?: string;
-  }
->();
-
-function generateId(): string {
-  return `cl${crypto.randomUUID().replace(/-/g, "").slice(0, 22)}`;
-}
+import { mockUsers, generateId } from "@/lib/mock-user-store";
 
 // POST /api/users/register - Register a new user
 export async function POST(request: NextRequest) {
@@ -181,4 +159,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export { mockUsers };

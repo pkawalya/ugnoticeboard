@@ -732,7 +732,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden pb-14 md:pb-0 pt-safe">
+      <main className="flex-1 overflow-hidden pb-14 md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

@@ -1,8 +1,6 @@
 'use client'
 
 import React from 'react'
-import { Button } from '@/components/ui/button'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 interface ErrorBoundaryProps {
   children: React.ReactNode
@@ -30,44 +28,70 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-6">
-          <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20">
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+        <div style={{
+          display: 'flex',
+          minHeight: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          backgroundColor: 'var(--background, #fff)',
+          color: 'var(--foreground, #000)'
+        }}>
+          <div style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <div style={{
+              margin: '0 auto 16px',
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              backgroundColor: '#fef2f2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 32
+            }}>
+              ⚠️
             </div>
-            <div className="space-y-2">
-              <h1 className="text-xl font-bold text-foreground">Something went wrong</h1>
-              <p className="text-sm text-muted-foreground">
-                The Uganda Community Notice Board encountered an unexpected error. This might be a temporary issue.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Button
+            <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Something went wrong</h1>
+            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>
+              The Uganda Community Notice Board encountered an error. This might be temporary.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
                 onClick={() => {
                   this.setState({ hasError: false, error: null })
                   window.location.reload()
                 }}
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'linear-gradient(to right, #16a34a, #15803d)',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: 'pointer'
+                }}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
                 Reload Page
-              </Button>
-              <Button
-                variant="outline"
+              </button>
+              <button
                 onClick={() => {
                   this.setState({ hasError: false, error: null })
                 }}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 8,
+                  border: '1px solid #d1d5db',
+                  background: 'transparent',
+                  color: '#374151',
+                  fontWeight: 500,
+                  fontSize: 14,
+                  cursor: 'pointer'
+                }}
               >
                 Try Again
-              </Button>
+              </button>
             </div>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="mt-4 rounded-lg bg-red-50 dark:bg-red-900/10 p-3 text-left">
-                <p className="text-xs font-mono text-red-600 dark:text-red-400 break-words">
-                  {this.state.error.message}
-                </p>
-              </div>
-            )}
           </div>
         </div>
       )

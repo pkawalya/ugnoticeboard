@@ -1,22 +1,25 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { UgandaMap } from '@/components/uganda-map'
-import { IssuesPanel } from '@/components/issues-panel'
-import { BroadcastsPanel } from '@/components/broadcasts-panel'
-import { ProjectsPanel } from '@/components/projects-panel'
-import { FacilitiesPanel } from '@/components/facilities-panel'
-import { EngagementPanel } from '@/components/engagement-panel'
-import { DashboardPanel } from '@/components/dashboard-panel'
-import { AuthDialogs } from '@/components/auth-dialogs'
-import { MobileQuickReport } from '@/components/mobile-quick-report'
 import { useAuthStore } from '@/hooks/use-auth'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useThemeStore } from '@/hooks/use-theme'
+
+// Dynamic imports to break circular dependency chains in production bundle
+const UgandaMap = dynamic(() => import('@/components/uganda-map').then(m => ({ default: m.UgandaMap })), { ssr: false })
+const IssuesPanel = dynamic(() => import('@/components/issues-panel').then(m => ({ default: m.IssuesPanel })), { ssr: false })
+const BroadcastsPanel = dynamic(() => import('@/components/broadcasts-panel').then(m => ({ default: m.BroadcastsPanel })), { ssr: false })
+const ProjectsPanel = dynamic(() => import('@/components/projects-panel').then(m => ({ default: m.ProjectsPanel })), { ssr: false })
+const FacilitiesPanel = dynamic(() => import('@/components/facilities-panel').then(m => ({ default: m.FacilitiesPanel })), { ssr: false })
+const EngagementPanel = dynamic(() => import('@/components/engagement-panel').then(m => ({ default: m.EngagementPanel })), { ssr: false })
+const DashboardPanel = dynamic(() => import('@/components/dashboard-panel').then(m => ({ default: m.DashboardPanel })), { ssr: false })
+const AuthDialogs = dynamic(() => import('@/components/auth-dialogs').then(m => ({ default: m.AuthDialogs })), { ssr: false })
+const MobileQuickReport = dynamic(() => import('@/components/mobile-quick-report').then(m => ({ default: m.MobileQuickReport })), { ssr: false })
 import {
   Map,
   AlertTriangle,

@@ -13,6 +13,7 @@ import { FacilitiesPanel } from '@/components/facilities-panel'
 import { EngagementPanel } from '@/components/engagement-panel'
 import { DashboardPanel } from '@/components/dashboard-panel'
 import { AuthDialogs } from '@/components/auth-dialogs'
+import { MobileQuickReport } from '@/components/mobile-quick-report'
 import { useAuthStore } from '@/hooks/use-auth'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useThemeStore } from '@/hooks/use-theme'
@@ -44,6 +45,7 @@ import {
   CheckCircle2,
   Info,
   Zap,
+  Plus,
 } from 'lucide-react'
 
 const tabs = [
@@ -210,18 +212,19 @@ function SearchResults({ query, onResultClick }: { query: string; onResultClick:
   )
 }
 
-// Mobile bottom nav - 5 key tabs + More
+// Mobile bottom nav - 4 tabs with center report FAB
 const mobileBottomTabs = [
   { id: 'map' as const, label: 'Map', icon: Map },
   { id: 'issues' as const, label: 'Issues', icon: AlertTriangle },
+  // Center gap for FAB
   { id: 'broadcasts' as const, label: 'Alerts', icon: Megaphone },
-  { id: 'engagement' as const, label: 'Engage', icon: Users },
-  { id: 'dashboard' as const, label: 'Dashboard', icon: BarChart3 },
+  { id: 'dashboard' as const, label: 'Stats', icon: BarChart3 },
 ]
 
 const moreTabs = [
   { id: 'projects' as const, label: 'Projects', icon: HardHat },
   { id: 'facilities' as const, label: 'Facilities', icon: Building2 },
+  { id: 'engagement' as const, label: 'Engage', icon: Users },
 ]
 
 // Uganda Coat of Arms Shield SVG
@@ -313,6 +316,7 @@ export default function Home() {
 
   const [autoOpenFacilityId, setAutoOpenFacilityId] = useState<string | null>(null)
   const [showIssueForm, setShowIssueForm] = useState(false)
+  const [quickReportOpen, setQuickReportOpen] = useState(false)
 
   const handleDistrictClick = useCallback((districtName: string) => {
     if (districtName) {
@@ -754,88 +758,149 @@ export default function Home() {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-white/95 dark:bg-gray-900/95 dark:border-gray-800 backdrop-blur-xl md:hidden safe-area-bottom">
-        <div className="flex items-center justify-around h-14">
-          {mobileBottomTabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
+      {/* Mobile Bottom Navigation with Center FAB */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-area-bottom">
+        {/* More menu dropdown - positioned above nav */}
+        <AnimatePresence>
+          {showMoreMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-16 right-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-border/50 overflow-hidden min-w-[170px] z-[60]"
+            >
+              {moreTabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                        : 'text-muted-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                    <ChevronRight className="h-3 w-3 ml-auto" />
+                  </button>
+                )
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* FAB Button - positioned above the nav bar */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-6 z-10">
+          <button
+            onClick={() => {
+              setShowMoreMenu(false)
+              setQuickReportOpen(true)
+            }}
+            className="fab-report-btn relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white shadow-lg shadow-green-600/40 transition-all duration-200 active:scale-90 hover:shadow-xl hover:shadow-green-600/50"
+            aria-label="Report an issue"
+          >
+            <Plus className="h-7 w-7" strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Nav Bar */}
+        <div className="border-t border-border/50 bg-white/95 dark:bg-gray-900/95 dark:border-gray-800 backdrop-blur-xl">
+          <div className="flex items-center h-14 px-1">
+            {/* Left tabs: Map, Issues */}
+            {mobileBottomTabs.slice(0, 2).map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                    isActive ? 'text-green-700' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
+                  <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="mobile-nav-dot"
+                      className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              )
+            })}
+
+            {/* Center spacer for FAB */}
+            <div className="flex-1 flex items-center justify-center h-full">
+              <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 mt-5">Report</span>
+            </div>
+
+            {/* Right tabs: Alerts, Stats/More */}
+            {mobileBottomTabs.slice(2).map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                    isActive ? 'text-green-700' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
+                  <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="mobile-nav-dot-right"
+                      className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              )
+            })}
+
+            {/* More button */}
+            <div className="relative flex-1">
               <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-all duration-200 min-w-0 ${
-                  isActive ? 'text-green-700' : 'text-muted-foreground'
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowMoreMenu(!showMoreMenu)
+                }}
+                className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-all duration-200 ${
+                  (activeTab === 'projects' || activeTab === 'facilities' || activeTab === 'engagement') ? 'text-green-700' : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-4.5 w-4.5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
-                <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
-                {isActive && (
+                <MoreHorizontal className="h-5 w-5" />
+                <span className="text-[10px] font-medium">More</span>
+                {(activeTab === 'projects' || activeTab === 'facilities' || activeTab === 'engagement') && (
                   <motion.div
-                    layoutId="mobile-nav-dot"
+                    layoutId="mobile-nav-dot-more"
                     className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
               </button>
-            )
-          })}
-          {/* More button */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowMoreMenu(!showMoreMenu)
-              }}
-              className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-all duration-200 min-w-0 ${
-                (activeTab === 'projects' || activeTab === 'facilities') ? 'text-green-700' : 'text-muted-foreground'
-              }`}
-            >
-              <MoreHorizontal className="h-4.5 w-4.5" />
-              <span className="text-[10px] font-medium">More</span>
-              {(activeTab === 'projects' || activeTab === 'facilities') && (
-                <motion.div
-                  layoutId="mobile-nav-dot-more"
-                  className="absolute -top-0 h-1 w-6 rounded-full bg-green-500"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-            </button>
-            {/* More menu dropdown */}
-            <AnimatePresence>
-              {showMoreMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute bottom-16 right-0 bg-white rounded-xl shadow-xl border border-border/50 overflow-hidden min-w-[160px]"
-                >
-                  {moreTabs.map((tab) => {
-                    const Icon = tab.icon
-                    const isActive = activeTab === tab.id
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => handleTabChange(tab.id)}
-                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-medium transition-colors ${
-                          isActive
-                            ? 'bg-green-50 text-green-700'
-                            : 'text-muted-foreground hover:bg-muted/50'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {tab.label}
-                        <ChevronRight className="h-3 w-3 ml-auto" />
-                      </button>
-                    )
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Quick Report Sheet */}
+      <MobileQuickReport
+        open={quickReportOpen}
+        onOpenChange={setQuickReportOpen}
+        onSubmitted={() => {
+          setQuickReportOpen(false)
+          setActiveTab('issues')
+        }}
+        defaultDistrict={selectedDistrict}
+      />
 
       {/* Footer - Desktop only */}
       <footer className="shrink-0 border-t border-border/50 bg-white/90 dark:bg-gray-900/90 dark:border-gray-800 backdrop-blur-md hidden md:block">

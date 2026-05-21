@@ -5,24 +5,42 @@ import { mockUsers, generateId } from "@/lib/mock-user-store";
 
 // POST /api/users/register - Register a new user
 export async function POST(request: NextRequest) {
+  // Parse body once — request body can only be consumed once
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const {
-      email,
-      phone,
-      name,
-      password,
-      role = "citizen",
-      preferredLanguage = "en",
-    } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!password || (!email && !phone)) {
-      return NextResponse.json(
-        { error: "Password and either email or phone are required" },
-        { status: 400 }
-      );
-    }
+  const {
+    email,
+    phone,
+    name,
+    password,
+    role = "citizen",
+    preferredLanguage = "en",
+  } = body as {
+    email?: string;
+    phone?: string;
+    name?: string;
+    password?: string;
+    role?: string;
+    preferredLanguage?: string;
+  };
 
+  if (!password || (!email && !phone)) {
+    return NextResponse.json(
+      { error: "Password and either email or phone are required" },
+      { status: 400 }
+    );
+  }
+
+  // Try database first, fall back to in-memory store
+  try {
     // Check if user already exists
     if (email) {
       const existingEmail = await db.user.findUnique({ where: { email } });
@@ -70,27 +88,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: user }, { status: 201 });
   } catch (error) {
-    console.error("Error registering user:", error);
+    console.error("Database error during registration, falling back to mock store:", error);
 
     // Fallback: database unavailable — create mock user
     try {
-      const body = await request.json();
-      const {
-        email,
-        phone,
-        name,
-        password,
-        role = "citizen",
-        preferredLanguage = "en",
-      } = body;
-
-      if (!password || (!email && !phone)) {
-        return NextResponse.json(
-          { error: "Password and either email or phone are required" },
-          { status: 400 }
-        );
-      }
-
       // Check in-memory store for duplicates
       if (email) {
         for (const u of mockUsers.values()) {
@@ -150,7 +151,8 @@ export async function POST(request: NextRequest) {
         },
         { status: 201 }
       );
-    } catch {
+    } catch (fallbackError) {
+      console.error("Mock store registration also failed:", fallbackError);
       return NextResponse.json(
         { error: "Failed to register user" },
         { status: 500 }
@@ -158,4 +160,3 @@ export async function POST(request: NextRequest) {
     }
   }
 }
-

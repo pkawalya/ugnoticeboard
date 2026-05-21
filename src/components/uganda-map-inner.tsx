@@ -547,6 +547,8 @@ export default function UgandaMap({
   onReportIssueRef.current = onReportIssue
   onViewFacilityRef.current = onViewFacility
 
+  const isMobile = useIsMobile()
+
   const [activeLayers, setActiveLayers] = useState<Record<LayerType, boolean>>({
     issues: true,
     facilities: true,
@@ -554,7 +556,11 @@ export default function UgandaMap({
     broadcasts: true,
   })
   const [showLegend, setShowLegend] = useState(true)
-  const [legendCollapsed, setLegendCollapsed] = useState(isMobile)
+  // IMPORTANT: Do NOT use isMobile as a useState initial value!
+  // The SWC minifier reorders hooks and will place useState() before useIsMobile(),
+  // causing "Cannot access before initialization" TDZ errors in production.
+  // useIsMobile() returns false on first render anyway, so use false directly.
+  const [legendCollapsed, setLegendCollapsed] = useState(false)
   const [showControls, setShowControls] = useState(false)
   const [showTileSwitcher, setShowTileSwitcher] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -586,13 +592,17 @@ export default function UgandaMap({
       imageUrl: string | null
     }[]
   >([])
-  const isMobile = useIsMobile()
 
   // Computed stats
   const totalIssues = Object.values(districtIssueCounts).reduce((s, c) => s + c.issues, 0)
   const totalCritical = Object.values(districtIssueCounts).reduce((s, c) => s + c.criticalIssues, 0)
   const totalBroadcasts = Object.values(districtIssueCounts).reduce((s, c) => s + c.broadcasts, 0)
   const totalFacilities = facilities.length
+
+  // Sync legendCollapsed with isMobile on mount (since we can't use isMobile as useState initial value)
+  useEffect(() => {
+    setLegendCollapsed(isMobile)
+  }, [isMobile])
 
   // ─── Data Fetching ──────────────────────────────────────────────────
 

@@ -131,3 +131,27 @@ Stage Summary:
 - All 9 heavy components now load via next/dynamic, breaking circular dependency chains
 - Production site is live and serving correct HTML
 - This also improves code splitting and initial page load performance
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix ReferenceError: Cannot access 'tL' before initialization in Uganda Notice Board
+
+Work Log:
+- Cloned the repo from GitHub (pkawalya/ugnoticeboard)
+- Read all source files: page.tsx, layout.tsx, error-boundary.tsx, use-mobile.ts, use-theme.ts, use-auth.ts, uganda-map-inner.tsx
+- Built the project locally and examined the production build output
+- Found the exact error location in the minified chunk 49c94df57ecd2a5a.js
+- Traced the TDZ error to uganda-map-inner.tsx line 557: `const [legendCollapsed, setLegendCollapsed] = useState(isMobile)`
+- The variable `isMobile` was defined on line 589 by `const isMobile = useIsMobile()`, AFTER the useState call
+- The SWC minifier reorders hooks, placing useState calls before useIsMobile() call
+- This creates a TDZ error: `useState(tL)` where `tL` (mangled isMobile) hasn't been initialized yet
+- Fix applied: Changed `useState(isMobile)` to `useState(false)` and added `useEffect` to sync with `isMobile`
+- Also moved `useIsMobile()` call before the useState calls to improve hook ordering
+- Verified the fix in the production build: useIsMobile() now appears before useState calls in the minified output
+- Pushed fix to GitHub for Vercel auto-deploy
+
+Stage Summary:
+- Root cause: TDZ error in uganda-map-inner.tsx - useState(isMobile) referenced isMobile before useIsMobile() hook call
+- The SWC minifier reorders hooks, making the TDZ error manifest only in production builds
+- Fix: Use useState(false) instead of useState(isMobile), with useEffect to sync
+- Pushed to GitHub as commit f2d2550

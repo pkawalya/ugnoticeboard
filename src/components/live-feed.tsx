@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useIsMobile } from '@/hooks/use-mobile'
 import {
   AlertTriangle,
   Bell,
@@ -50,6 +51,7 @@ interface LiveFeedProps {
 export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     async function fetchRecentActivity() {
@@ -83,6 +85,25 @@ export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
   }, [])
 
   if (isLoading) {
+    // On mobile: simple div to avoid nested ScrollArea conflicts
+    if (isMobile) {
+      return (
+        <div style={{ maxHeight }} className={`overflow-y-auto ${className || ''}`}>
+          <div className="space-y-3 p-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-3 rounded-xl border border-border/30 p-3">
+                <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-3/4 rounded" />
+                  <Skeleton className="h-3 w-1/2 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
     return (
       <ScrollArea style={{ maxHeight }} className={className}>
         <div className="space-y-3 p-1">
@@ -100,46 +121,59 @@ export function LiveFeed({ className, maxHeight = '400px' }: LiveFeedProps) {
     )
   }
 
-  return (
-    <ScrollArea style={{ maxHeight }} className={className}>
-      <div className="space-y-2 p-1">
-        {feedItems.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground text-sm">No recent activity.</p>
-          </div>
-        ) : (
-          feedItems.map((item) => {
-            const config = typeConfig[item.type] || typeConfig.issue
-            const Icon = config.icon
-            return (
-              <div key={item.id} className="flex gap-3 rounded-xl border border-border/30 p-3 transition-all duration-200 hover:bg-muted/30 hover:border-border/50 group">
-                <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${config.gradient} shadow-sm`}>
-                  <Icon className="h-4 w-4 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold group-hover:text-green-700 transition-colors">{item.title}</p>
-                  <p className="truncate text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="text-[11px] text-muted-foreground/70 font-medium">
-                      {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
-                    </span>
-                    {item.severity && (
-                      <Badge variant="outline" className={`h-4 border-0 px-1.5 text-[10px] font-semibold ${
-                        item.severity === 'critical' ? 'bg-red-50 text-red-700' :
-                        item.severity === 'high' ? 'bg-orange-50 text-orange-700' :
-                        item.severity === 'medium' ? 'bg-yellow-50 text-yellow-700' :
-                        'bg-green-50 text-green-700'
-                      }`}>
-                        {item.severity}
-                      </Badge>
-                    )}
-                  </div>
+  const feedContent = (
+    <div className="space-y-2 p-1">
+      {feedItems.length === 0 ? (
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground text-sm">No recent activity.</p>
+        </div>
+      ) : (
+        feedItems.map((item) => {
+          const config = typeConfig[item.type] || typeConfig.issue
+          const Icon = config.icon
+          return (
+            <div key={item.id} className="flex gap-3 rounded-xl border border-border/30 p-3 transition-all duration-200 hover:bg-muted/30 hover:border-border/50 group">
+              <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${config.gradient} shadow-sm`}>
+                <Icon className="h-4 w-4 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold group-hover:text-green-700 transition-colors">{item.title}</p>
+                <p className="truncate text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground/70 font-medium">
+                    {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                  </span>
+                  {item.severity && (
+                    <Badge variant="outline" className={`h-4 border-0 px-1.5 text-[10px] font-semibold ${
+                      item.severity === 'critical' ? 'bg-red-50 text-red-700' :
+                      item.severity === 'high' ? 'bg-orange-50 text-orange-700' :
+                      item.severity === 'medium' ? 'bg-yellow-50 text-yellow-700' :
+                      'bg-green-50 text-green-700'
+                    }`}>
+                      {item.severity}
+                    </Badge>
+                  )}
                 </div>
               </div>
-            )
-          })
-        )}
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+
+  // On mobile: use simple div with overflow-y-auto to avoid nested ScrollArea scroll conflicts
+  if (isMobile) {
+    return (
+      <div style={{ maxHeight }} className={`overflow-y-auto custom-scrollbar ${className || ''}`}>
+        {feedContent}
       </div>
+    )
+  }
+
+  return (
+    <ScrollArea style={{ maxHeight }} className={className}>
+      {feedContent}
     </ScrollArea>
   )
 }

@@ -56,6 +56,12 @@ const PERIOD_LABELS: Record<PeriodOption, string> = {
   all: 'All Time',
 }
 
+const PERIOD_LABELS_MOBILE: Record<PeriodOption, string> = {
+  week: 'Week',
+  month: 'Month',
+  all: 'All',
+}
+
 interface RegionData {
   name: string
   issueCount: number
@@ -149,7 +155,7 @@ export function DashboardPanel() {
   const categoryBreakdown = stats?.issuesByCategory || []
   const statusDistribution = stats?.issuesByStatus || []
   const severityData = stats?.issuesBySeverity || []
-  const chartHeight = isMobile ? 220 : 280
+  const chartHeight = isMobile ? 180 : 280
 
   // Format last updated timestamp
   const lastUpdated = dataUpdatedAt
@@ -184,13 +190,13 @@ export function DashboardPanel() {
                 <button
                   key={key}
                   onClick={() => setPeriod(key)}
-                  className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 ${
+                  className={`${isMobile ? 'px-1.5' : 'px-2 sm:px-3'} py-1 ${isMobile ? 'text-[9px]' : 'text-[10px] sm:text-xs'} font-medium rounded-md transition-all duration-200 ${
                     period === key
                       ? 'bg-white text-green-700 shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {PERIOD_LABELS[key]}
+                  {isMobile ? PERIOD_LABELS_MOBILE[key] : PERIOD_LABELS[key]}
                 </button>
               ))}
             </div>
@@ -224,71 +230,94 @@ export function DashboardPanel() {
             <p className="text-xs text-muted-foreground mt-1">Data will refresh automatically</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+          <div className={`grid gap-2 sm:gap-3 ${isMobile ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
             <StatCard
               title="Total Issues"
               value={dashboardMetrics.totalIssues}
               icon={AlertTriangle}
-              description="All reported issues"
+              description={isMobile ? undefined : "All reported issues"}
               iconClassName="bg-gradient-to-br from-orange-500 to-amber-500"
+              className={isMobile ? '[&_.text-2xl]:text-lg [&_.text-xs]:text-[9px] [&_.p-4]:p-2.5' : undefined}
             />
             <StatCard
               title="Open Issues"
               value={dashboardMetrics.openIssues}
               icon={Activity}
-              description="Currently active"
+              description={isMobile ? undefined : "Currently active"}
               iconClassName="bg-gradient-to-br from-yellow-500 to-amber-400"
+              className={isMobile ? '[&_.text-2xl]:text-lg [&_.text-xs]:text-[9px] [&_.p-4]:p-2.5' : undefined}
             />
             <StatCard
               title="Resolved"
               value={dashboardMetrics.resolvedIssues}
               icon={CheckCircle2}
-              description="Successfully resolved"
+              description={isMobile ? undefined : "Successfully resolved"}
               iconClassName="bg-gradient-to-br from-green-500 to-emerald-500"
               trend={stats?.resolvedThisMonth ? { value: stats.resolvedThisMonth, isPositive: true } : undefined}
+              className={isMobile ? '[&_.text-2xl]:text-lg [&_.text-xs]:text-[9px] [&_.p-4]:p-2.5' : undefined}
             />
+            {/* Mobile: hide Escalated, show Critical instead */}
+            {!isMobile && (
+              <StatCard
+                title="Escalated"
+                value={dashboardMetrics.escalatedIssues}
+                icon={ShieldAlert}
+                description="Require higher attention"
+                iconClassName="bg-gradient-to-br from-red-500 to-rose-500"
+              />
+            )}
             <StatCard
-              title="Escalated"
-              value={dashboardMetrics.escalatedIssues}
+              title="Critical"
+              value={dashboardMetrics.criticalIssues}
               icon={ShieldAlert}
-              description="Require higher attention"
+              description={isMobile ? undefined : "Critical severity"}
               iconClassName="bg-gradient-to-br from-red-500 to-rose-500"
+              className={isMobile ? '[&_.text-2xl]:text-lg [&_.text-xs]:text-[9px] [&_.p-4]:p-2.5' : undefined}
             />
             <StatCard
-              title="Active Broadcasts"
+              title={isMobile ? 'Broadcasts' : 'Active Broadcasts'}
               value={dashboardMetrics.activeBroadcasts}
               icon={Radio}
-              description={`of ${dashboardMetrics.totalBroadcasts} total`}
+              description={isMobile ? undefined : `of ${dashboardMetrics.totalBroadcasts} total`}
               iconClassName="bg-gradient-to-br from-blue-500 to-cyan-500"
+              className={isMobile ? '[&_.text-2xl]:text-lg [&_.text-xs]:text-[9px] [&_.p-4]:p-2.5' : undefined}
             />
             <StatCard
               title="Facilities"
               value={dashboardMetrics.operationalFacilities}
               icon={Building2}
-              description={`of ${dashboardMetrics.totalFacilities} total`}
+              description={isMobile ? undefined : `of ${dashboardMetrics.totalFacilities} total`}
               iconClassName="bg-gradient-to-br from-purple-500 to-violet-500"
+              className={isMobile ? '[&_.text-2xl]:text-lg [&_.text-xs]:text-[9px] [&_.p-4]:p-2.5' : undefined}
             />
-            <StatCard
-              title="Active Projects"
-              value={dashboardMetrics.activeProjects}
-              icon={HardHat}
-              description={`of ${dashboardMetrics.totalProjects} total`}
-              iconClassName="bg-gradient-to-br from-amber-500 to-yellow-400"
-            />
-            <StatCard
-              title="Communities"
-              value={dashboardMetrics.totalCommunities}
-              icon={MapPin}
-              description="Registered communities"
-              iconClassName="bg-gradient-to-br from-teal-500 to-cyan-500"
-            />
-            <StatCard
-              title="Active Users"
-              value={dashboardMetrics.activeUsers.toLocaleString()}
-              icon={Users}
-              description="Platform participants"
-              iconClassName="bg-gradient-to-br from-rose-500 to-pink-500"
-            />
+            {/* Mobile: hide Active Projects, Communities, Active Users */}
+            {!isMobile && (
+              <StatCard
+                title="Active Projects"
+                value={dashboardMetrics.activeProjects}
+                icon={HardHat}
+                description={`of ${dashboardMetrics.totalProjects} total`}
+                iconClassName="bg-gradient-to-br from-amber-500 to-yellow-400"
+              />
+            )}
+            {!isMobile && (
+              <StatCard
+                title="Communities"
+                value={dashboardMetrics.totalCommunities}
+                icon={MapPin}
+                description="Registered communities"
+                iconClassName="bg-gradient-to-br from-teal-500 to-cyan-500"
+              />
+            )}
+            {!isMobile && (
+              <StatCard
+                title="Active Users"
+                value={dashboardMetrics.activeUsers.toLocaleString()}
+                icon={Users}
+                description="Platform participants"
+                iconClassName="bg-gradient-to-br from-rose-500 to-pink-500"
+              />
+            )}
           </div>
         )}
 

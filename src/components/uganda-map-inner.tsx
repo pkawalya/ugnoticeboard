@@ -540,7 +540,7 @@ export default function UgandaMap({
     broadcasts: true,
   })
   const [showLegend, setShowLegend] = useState(true)
-  const [legendCollapsed, setLegendCollapsed] = useState(false)
+  const [legendCollapsed, setLegendCollapsed] = useState(isMobile)
   const [showControls, setShowControls] = useState(false)
   const [showTileSwitcher, setShowTileSwitcher] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -1060,55 +1060,78 @@ export default function UgandaMap({
         }`}
       >
         <div
-          className={`flex items-center justify-between gap-1 rounded-xl bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-md ${
-            isMobile ? 'text-[9px]' : 'text-[10px]'
+          className={`flex items-center justify-between gap-1 rounded-xl bg-white/95 shadow-lg backdrop-blur-md ${
+            isMobile ? 'px-2.5 py-1.5 text-[10px]' : 'px-2 py-1.5 text-[10px]'
           }`}
         >
-          <div className="flex items-center gap-1">
-            <span className="relative flex mr-0.5 h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-full w-full bg-green-500" />
-            </span>
-            <span className="font-semibold text-green-700">Live</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3 text-orange-500" />
-            <span className="font-medium text-muted-foreground">Issues</span>
-            <span className="font-bold text-orange-600">{totalIssues}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Shield className="h-3 w-3 text-red-500" />
-            <span className="font-medium text-muted-foreground">Critical</span>
-            <span className="font-bold text-red-600">{totalCritical}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Radio className="h-3 w-3 text-purple-500" />
-            <span className="font-medium text-muted-foreground">Broadcasts</span>
-            <span className="font-bold text-purple-600">{totalBroadcasts}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Building2 className="h-3 w-3 text-cyan-500" />
-            <span className="font-medium text-muted-foreground">Facilities</span>
-            <span className="font-bold text-cyan-600">{totalFacilities}</span>
-          </div>
-
+          {/* Desktop: Show all 5 stats + Live + timestamp */}
           {!isMobile && (
-            <div className="flex items-center gap-1 ml-1 pl-1 border-l border-gray-200">
-              <Activity className="h-3 w-3 text-green-500" />
-              <span className="text-muted-foreground">
-                {lastRefresh.toLocaleTimeString()}
-              </span>
-            </div>
+            <>
+              <div className="flex items-center gap-1">
+                <span className="relative flex mr-0.5 h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-full w-full bg-green-500" />
+                </span>
+                <span className="font-semibold text-green-700">Live</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 text-orange-500" />
+                <span className="font-medium text-muted-foreground">Issues</span>
+                <span className="font-bold text-orange-600">{totalIssues}</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Shield className="h-3 w-3 text-red-500" />
+                <span className="font-medium text-muted-foreground">Critical</span>
+                <span className="font-bold text-red-600">{totalCritical}</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Radio className="h-3 w-3 text-purple-500" />
+                <span className="font-medium text-muted-foreground">Broadcasts</span>
+                <span className="font-bold text-purple-600">{totalBroadcasts}</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-cyan-500" />
+                <span className="font-medium text-muted-foreground">Facilities</span>
+                <span className="font-bold text-cyan-600">{totalFacilities}</span>
+              </div>
+
+              <div className="flex items-center gap-1 ml-1 pl-1 border-l border-gray-200">
+                <Activity className="h-3 w-3 text-green-500" />
+                <span className="text-muted-foreground">
+                  {lastRefresh.toLocaleTimeString()}
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* Mobile: Show only 3 key stats - icons + numbers, no labels */}
+          {isMobile && (
+            <>
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+                <span className="font-bold text-orange-600">{totalIssues}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-red-500" />
+                <span className="font-bold text-red-600">{totalCritical}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-cyan-500" />
+                <span className="font-bold text-cyan-600">{totalFacilities}</span>
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {/* ─── Left Controls (Live + Refresh + Reset) ───────────────── */}
-      <div className={`absolute left-2 sm:left-3 z-[1000] ${isMobile ? 'top-10' : 'top-14'} flex flex-col gap-1.5`}>
+      <div className={`absolute left-2 sm:left-3 z-[1000] ${isMobile ? 'top-[4.5rem]' : 'top-14'} flex flex-col gap-1.5`}>
         <Button
           variant="outline"
           size="sm"
@@ -1134,7 +1157,7 @@ export default function UgandaMap({
       </div>
 
       {/* ─── Tile Layer Switcher (Top Right) ──────────────────────── */}
-      <div className={`absolute z-[1000] ${isMobile ? 'right-2 top-10' : 'right-3 top-14'}`}>
+      <div className={`absolute z-[1000] ${isMobile ? 'right-2 top-[4.5rem]' : 'right-3 top-14'}`}>
         <Button
           variant="outline"
           size="sm"
@@ -1178,7 +1201,7 @@ export default function UgandaMap({
       </div>
 
       {/* ─── Layer Control Panel ──────────────────────────────────── */}
-      <div className={`absolute z-[1000] ${isMobile ? 'right-2 top-[4.5rem]' : 'right-3 top-[6.5rem]'}`}>
+      <div className={`absolute z-[1000] ${isMobile ? 'right-2 top-[7rem]' : 'right-3 top-[6.5rem]'}`}>
         <Button
           variant="outline"
           size="sm"
@@ -1377,7 +1400,7 @@ export default function UgandaMap({
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {Object.entries(FACILITY_TYPE_META)
-                      .slice(0, 6)
+                      .slice(0, isMobile ? 4 : 6)
                       .map(([key, meta]) => (
                         <div key={key} className="legend-item">
                           <div
@@ -1451,11 +1474,11 @@ export default function UgandaMap({
       {/* ─── Selected District Info ────────────────────────────────── */}
       {selectedDistrict && (
         <Card
-          className={`absolute left-2 sm:left-3 z-[1000] bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden ${
-            isMobile ? 'top-24 w-56' : 'top-28 w-72'
+          className={`absolute z-[1000] bg-white/95 backdrop-blur-md shadow-xl border-0 overflow-hidden ${
+            isMobile ? 'bottom-28 left-2 w-56' : 'top-28 left-3 w-72'
           }`}
         >
-          <div className="bg-gradient-to-r from-green-600 to-green-700 px-3 sm:px-4 py-2 sm:py-3">
+          <div className="bg-gradient-to-r from-green-600 to-green-700 px-3 py-2">
             <div className="flex items-center justify-between">
               <h3 className={`font-semibold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {selectedDistrict}

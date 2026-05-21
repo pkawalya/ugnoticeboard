@@ -313,6 +313,7 @@ export default function HomeContent() {
   const [showIssueForm, setShowIssueForm] = useState(false)
   const [quickReportOpen, setQuickReportOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mapRefreshKey, setMapRefreshKey] = useState(0)
 
   const handleDistrictClick = useCallback((districtName: string) => {
     if (districtName) {
@@ -752,6 +753,7 @@ export default function HomeContent() {
                   onReportIssue={handleReportIssue}
                   onViewFacility={handleViewFacility}
                   selectedDistrict={selectedDistrict}
+                  refreshKey={mapRefreshKey}
                 />
               </div>
             )}
@@ -762,6 +764,7 @@ export default function HomeContent() {
                 onDistrictClear={() => setSelectedDistrict('')}
                 autoOpenForm={showIssueForm}
                 onFormOpened={() => setShowIssueForm(false)}
+                onIssueCreated={() => setMapRefreshKey(k => k + 1)}
               />
             )}
 
@@ -1033,6 +1036,7 @@ export default function HomeContent() {
         onOpenChange={setQuickReportOpen}
         onSubmitted={() => {
           setQuickReportOpen(false)
+          setMapRefreshKey(k => k + 1)
           setActiveTab('issues')
         }}
         defaultDistrict={selectedDistrict}

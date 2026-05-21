@@ -80,9 +80,10 @@ interface IssuesPanelProps {
   onDistrictClear?: () => void
   autoOpenForm?: boolean
   onFormOpened?: () => void
+  onIssueCreated?: () => void
 }
 
-export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onFormOpened }: IssuesPanelProps) {
+export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onFormOpened, onIssueCreated }: IssuesPanelProps) {
   const [showForm, setShowForm] = useState(false)
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -457,7 +458,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onF
       </ScrollArea>
 
       {/* Issue Form Dialog */}
-      <IssueForm open={showForm} onOpenChange={setShowForm} onSubmitted={fetchIssues} />
+      <IssueForm open={showForm} onOpenChange={setShowForm} onSubmitted={() => { fetchIssues(); onIssueCreated?.() }} />
 
       {/* Detail Sheet */}
       <DetailSheet

@@ -23,6 +23,8 @@ interface UgandaMapProps {
   showFacilities?: boolean
   showProjects?: boolean
   showBroadcasts?: boolean
+  /** Increment this to trigger an immediate data refresh on the map */
+  refreshKey?: number
 }
 
 export function UgandaMap(props: UgandaMapProps) {

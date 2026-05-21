@@ -517,6 +517,8 @@ interface UgandaMapProps {
   showFacilities?: boolean
   showProjects?: boolean
   showBroadcasts?: boolean
+  /** Increment this to trigger an immediate data refresh on the map */
+  refreshKey?: number
 }
 
 type LayerType = 'issues' | 'facilities' | 'projects' | 'broadcasts'
@@ -530,6 +532,7 @@ export default function UgandaMap({
   selectedDistrict,
   showFacilities = true,
   showBroadcasts = true,
+  refreshKey,
 }: UgandaMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
@@ -652,7 +655,7 @@ export default function UgandaMap({
     }
   }, [])
 
-  // Initial data fetch and polling
+  // Initial data fetch, polling, and refresh on refreshKey change
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -665,7 +668,7 @@ export default function UgandaMap({
       cancelled = true
       clearInterval(interval)
     }
-  }, [fetchData])
+  }, [fetchData, refreshKey])
 
   // ─── Tile Layer Management ──────────────────────────────────────────
 

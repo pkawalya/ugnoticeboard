@@ -3,11 +3,38 @@
 import { create } from 'zustand'
 import type { User } from '@/lib/types'
 
+const AUTH_STORAGE_KEY = 'ugcnb_auth_user'
+
+function loadPersistedUser(): { user: User | null; isAuthenticated: boolean } {
+  if (typeof window === 'undefined') return { user: null, isAuthenticated: false }
+  try {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return { user: parsed, isAuthenticated: true }
+    }
+  } catch {
+    // Corrupted data — clear it
+    localStorage.removeItem(AUTH_STORAGE_KEY)
+  }
+  return { user: null, isAuthenticated: false }
+}
+
+function persistUser(user: User | null) {
+  if (typeof window === 'undefined') return
+  if (user) {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
+  } else {
+    localStorage.removeItem(AUTH_STORAGE_KEY)
+  }
+}
+
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
+  hydrated: boolean
 
   // Actions
   setUser: (user: User | null) => void
@@ -15,16 +42,27 @@ interface AuthState {
   register: (name: string, email: string, password: string, phone?: string) => Promise<boolean>
   logout: () => void
   clearError: () => void
+  hydrate: () => void
 }
 
-export const useAuthStore = create<AuthState>()((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  hydrated: false,
 
-  setUser: (user) =>
-    set({ user, isAuthenticated: !!user, isLoading: false }),
+  // Load persisted user from localStorage on client mount
+  hydrate: () => {
+    if (get().hydrated) return
+    const { user, isAuthenticated } = loadPersistedUser()
+    set({ user, isAuthenticated, hydrated: true })
+  },
+
+  setUser: (user) => {
+    persistUser(user)
+    set({ user, isAuthenticated: !!user, isLoading: false })
+  },
 
   login: async (email, password) => {
     set({ isLoading: true, error: null })
@@ -40,7 +78,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
         return false
       }
       const userData = data.data || data.user
-      set({ user: { ...userData, isAnonymous: false, isOfficial: userData.isOfficial ?? false, avatarUrl: userData.avatarUrl ?? null, createdAt: userData.createdAt ?? new Date().toISOString() }, isAuthenticated: true, isLoading: false, error: null })
+      const user: User = {
+        ...userData,
+        isAnonymous: false,
+        isOfficial: userData.isOfficial ?? false,
+        avatarUrl: userData.avatarUrl ?? null,
+        createdAt: userData.createdAt ?? new Date().toISOString(),
+      }
+      persistUser(user)
+      set({ user, isAuthenticated: true, isLoading: false, error: null })
       return true
     } catch {
       set({ error: 'Network error', isLoading: false })
@@ -62,7 +108,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
         return false
       }
       const userData = data.data || data.user
-      set({ user: { ...userData, isAnonymous: false, isOfficial: false, avatarUrl: null }, isAuthenticated: true, isLoading: false, error: null })
+      const user: User = {
+        ...userData,
+        isAnonymous: false,
+        isOfficial: false,
+        avatarUrl: null,
+        createdAt: userData.createdAt ?? new Date().toISOString(),
+      }
+      persistUser(user)
+      set({ user, isAuthenticated: true, isLoading: false, error: null })
       return true
     } catch {
       set({ error: 'Network error', isLoading: false })
@@ -71,6 +125,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   logout: () => {
+    persistUser(null)
     set({ user: null, isAuthenticated: false, error: null })
   },
 

@@ -252,9 +252,14 @@ export default function HomeContent() {
   const [notifCount, setNotifCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated, logout, hydrate: hydrateAuth } = useAuthStore()
   const isMobile = useIsMobile()
   const { theme, toggleTheme, hydrated, hydrate } = useThemeStore()
+
+  // Hydrate auth state from localStorage on client mount
+  useEffect(() => {
+    hydrateAuth()
+  }, [hydrateAuth])
 
   // Hydrate theme from localStorage on client mount (avoids SSR mismatch)
   useEffect(() => {

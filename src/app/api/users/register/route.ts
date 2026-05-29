@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { mockUsers, generateId } from "@/lib/mock-user-store";
 
+// Self-registration only allows "citizen" role.
+// Elevated roles must be assigned by an admin via a separate endpoint.
+const ALLOWED_SELF_REGISTER_ROLES = ["citizen"];
+
 // POST /api/users/register - Register a new user
 export async function POST(request: NextRequest) {
   // Parse body once — request body can only be consumed once
@@ -21,7 +25,6 @@ export async function POST(request: NextRequest) {
     phone,
     name,
     password,
-    role = "citizen",
     preferredLanguage = "en",
   } = body as {
     email?: string;
@@ -31,6 +34,9 @@ export async function POST(request: NextRequest) {
     role?: string;
     preferredLanguage?: string;
   };
+
+  // Always force "citizen" role on self-registration to prevent privilege escalation
+  const role = "citizen";
 
   if (!password || (!email && !phone)) {
     return NextResponse.json(

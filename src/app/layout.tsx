@@ -32,7 +32,12 @@ export const metadata: Metadata = {
     "Citizen Participation",
   ],
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='33' fill='%2316a34a'/><rect y='33' width='100' height='34' fill='%23facc15'/><rect y='67' width='100' height='33' fill='%23dc2626'/><circle cx='50' cy='50' r='12' fill='%2316a34a'/></svg>",
+    icon: [
+      { url: "/favicon.ico", sizes: "256x256" },
+      { url: "/icons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
     title: "Uganda Community Notice Board",

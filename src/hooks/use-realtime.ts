@@ -254,94 +254,103 @@ export function useRealtime(options?: {
   )
 
   // ----------------------------------------------------------
-  // Socket connection lifecycle
+  // Socket connection lifecycle (async — socket is lazy-loaded)
   // ----------------------------------------------------------
 
   useEffect(() => {
-    const socket = getSocket()
+    let cancelled = false
 
-    // Connection handlers
-    const onConnect = () => {
-      setConnected(true)
-      setSocketId(socket.id ?? null)
-      setConnectionError(null)
+    async function setupSocket() {
+      const socket = await getSocket()
+      if (cancelled) return
 
-      // Auto-join communities on reconnect
-      for (const community of communities) {
-        socketJoinCommunity(community.id, community.level, community.name)
+      // Connection handlers
+      const onConnect = () => {
+        setConnected(true)
+        setSocketId(socket.id ?? null)
+        setConnectionError(null)
+
+        // Auto-join communities on reconnect
+        for (const community of communities) {
+          socketJoinCommunity(community.id, community.level, community.name)
+        }
+      }
+
+      const onDisconnect = (reason: string) => {
+        setConnected(false)
+        setSocketId(null)
+        console.warn('[useRealtime] Disconnected:', reason)
+      }
+
+      const onConnectError = (error: Error) => {
+        setConnectionError(error.message)
+        console.error('[useRealtime] Connection error:', error.message)
+      }
+
+      socket.on('connect', onConnect)
+      socket.on('disconnect', onDisconnect)
+      socket.on('connect_error', onConnectError)
+
+      // Register all event listeners
+      const eventNames: RealtimeEventName[] = [
+        'issue:new',
+        'issue:update',
+        'issue:escalated',
+        'broadcast:new',
+        'broadcast:emergency',
+        'vote:update',
+        'notification:new',
+        'stats:update',
+      ]
+
+      for (const eventName of eventNames) {
+        // Skip stats if not enabled
+        if (eventName === 'stats:update' && !enableStats) continue
+
+        const handler = (data: unknown) => {
+          handleEvent(eventName, data as RealtimeEventDataMap[typeof eventName])
+        }
+
+        socket.on(eventName, handler)
+        listenersRef.current.set(eventName, handler as EventHandler<RealtimeEventName>)
+      }
+
+      // Community room event handlers
+      socket.on('community:joined', (data) => {
+        addJoinedCommunity(data.communityId)
+      })
+
+      socket.on('community:left', (data) => {
+        removeJoinedCommunity(data.communityId)
+      })
+
+      // Connect if not already
+      if (!socket.connected) {
+        socket.connect()
+      }
+
+      // Cleanup function stored for later
+      return () => {
+        socket.off('connect', onConnect)
+        socket.off('disconnect', onDisconnect)
+        socket.off('connect_error', onConnectError)
+
+        for (const [eventName, handler] of listenersRef.current.entries()) {
+          socket.off(eventName as RealtimeEventName, handler)
+        }
+        listenersRef.current.clear()
+
+        socket.off('community:joined')
+        socket.off('community:left')
       }
     }
 
-    const onDisconnect = (reason: string) => {
-      setConnected(false)
-      setSocketId(null)
-      console.warn('[useRealtime] Disconnected:', reason)
-    }
-
-    const onConnectError = (error: Error) => {
-      setConnectionError(error.message)
-      console.error('[useRealtime] Connection error:', error.message)
-    }
-
-    socket.on('connect', onConnect)
-    socket.on('disconnect', onDisconnect)
-    socket.on('connect_error', onConnectError)
-
-    // Register all event listeners
-    const eventNames: RealtimeEventName[] = [
-      'issue:new',
-      'issue:update',
-      'issue:escalated',
-      'broadcast:new',
-      'broadcast:emergency',
-      'vote:update',
-      'notification:new',
-      'stats:update',
-    ]
-
-    for (const eventName of eventNames) {
-      // Skip stats if not enabled
-      if (eventName === 'stats:update' && !enableStats) continue
-
-      const handler = (data: unknown) => {
-        handleEvent(eventName, data as RealtimeEventDataMap[typeof eventName])
-      }
-
-      socket.on(eventName, handler)
-      listenersRef.current.set(eventName, handler as EventHandler<RealtimeEventName>)
-    }
-
-    // Community room event handlers
-    socket.on('community:joined', (data) => {
-      addJoinedCommunity(data.communityId)
-    })
-
-    socket.on('community:left', (data) => {
-      removeJoinedCommunity(data.communityId)
-    })
-
-    // Connect if not already
-    if (!socket.connected) {
-      socket.connect()
-    }
+    let cleanup: (() => void) | undefined
+    setupSocket().then((fn) => { cleanup = fn })
 
     return () => {
-      // Cleanup all listeners
-      socket.off('connect', onConnect)
-      socket.off('disconnect', onDisconnect)
-      socket.off('connect_error', onConnectError)
-
-      for (const [eventName, handler] of listenersRef.current.entries()) {
-        socket.off(eventName as RealtimeEventName, handler)
-      }
-      listenersRef.current.clear()
-
-      socket.off('community:joined')
-      socket.off('community:left')
-
-      // Note: We do NOT disconnect the socket on unmount,
-      // because other components might still be using it.
-      // Use disconnectSocket() explicitly when you want to tear down.
+      cancelled = true
+      cleanup?.()
     }
   }, [enableStats]) // We intentionally limit re-run triggers
 
@@ -385,17 +394,18 @@ export function useRealtime(options?: {
       eventType: K,
       callback: EventHandler<K>
     ): (() => void) => {
-      const socket = getSocket()
+      let unsubscribe: (() => void) | null = null
 
-      const handler = (data: unknown) => {
-        callback(data as RealtimeEventDataMap[K])
-      }
+      getSocket().then((socket) => {
+        const handler = (data: unknown) => {
+          callback(data as RealtimeEventDataMap[K])
+        }
 
-      socket.on(eventType, handler)
+        socket.on(eventType, handler)
+        unsubscribe = () => socket.off(eventType, handler)
+      })
 
-      return () => {
-        socket.off(eventType, handler)
-      }
+      return () => unsubscribe?.()
     },
     []
   )
@@ -408,10 +418,11 @@ export function useRealtime(options?: {
       eventType: K,
       data: RealtimeEventDataMap[K]
     ) => {
-      const socket = getSocket()
-      if (socket.connected) {
-        socket.emit(eventType as string, data)
-      }
+      getSocket().then((socket) => {
+        if (socket.connected) {
+          socket.emit(eventType as string, data)
+        }
+      })
     },
     []
   )

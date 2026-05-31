@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: issues,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' },
     });
   } catch (error) {
     console.error("Error fetching issues:", error);
@@ -102,12 +104,15 @@ export async function POST(request: NextRequest) {
     reportedById?: string;
   };
 
-  if (!title || !description || !category) {
+  if (!title || !category) {
     return NextResponse.json(
-      { error: "Title, description, and category are required" },
+      { error: "Title and category are required" },
       { status: 400 }
     );
   }
+
+  // Use title as description fallback if not provided
+  const effectiveDescription = description || title;
 
   if (!communityId) {
     return NextResponse.json(
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest) {
     const issue = await db.issue.create({
       data: {
         title,
-        description,
+        description: effectiveDescription,
         category,
         severity,
         isAnonymous,
@@ -181,7 +186,7 @@ export async function POST(request: NextRequest) {
     const mockIssue = {
       id,
       title,
-      description,
+      description: effectiveDescription,
       category,
       severity,
       status: "submitted",

@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: facilities,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
     });
   } catch (error) {
     console.error("Error fetching facilities:", error);

@@ -7,9 +7,38 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   experimental: {
-    // Force framer-motion into a single chunk to prevent TDZ errors
-    // caused by circular dependencies in the production bundle
-    optimizePackageImports: ["framer-motion", "lucide-react"],
+    // Force heavy packages into optimized chunks to prevent TDZ errors
+    // and reduce initial bundle size via tree-shaking
+    optimizePackageImports: [
+      "framer-motion",
+      "lucide-react",
+      "recharts",
+      "date-fns",
+      "@radix-ui/react-icons",
+    ],
+  },
+  // Add caching headers for static assets
+  async headers() {
+    return [
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=10, stale-while-revalidate=30",
+          },
+        ],
+      },
+      {
+        source: "/icons/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
 };
 

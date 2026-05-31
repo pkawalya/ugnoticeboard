@@ -4,9 +4,11 @@
  * Provides a typed, singleton socket connection to the realtime service.
  * IMPORTANT: Uses `io("/?XTransformPort=3003")` to connect through the Caddy gateway.
  * NEVER use `http://localhost:3003` directly.
+ *
+ * Socket.io-client is lazy-loaded on first use to reduce initial bundle size.
  */
 
-import { io, Socket } from 'socket.io-client'
+import type { Socket } from 'socket.io-client'
 
 // ============================================================
 // Event Type Definitions
@@ -173,7 +175,7 @@ export type RealtimeEventName =
   | 'stats:update'
 
 // ============================================================
-// Socket Connection Singleton
+// Socket Connection Singleton (lazy-loaded)
 // ============================================================
 
 let socketInstance: Socket<ServerToClientEvents, ClientToServerEvents> | null =
@@ -181,15 +183,14 @@ let socketInstance: Socket<ServerToClientEvents, ClientToServerEvents> | null =
 
 /**
  * Creates or returns the singleton Socket.IO client instance.
- *
- * IMPORTANT: Connects via `io("/?XTransformPort=3003")` so that
- * the Caddy gateway proxies the request to the realtime service on port 3003.
+ * Lazy-loads socket.io-client on first call to reduce initial bundle size.
  */
-export function getSocket(): Socket<
+export async function getSocket(): Promise<Socket<
   ServerToClientEvents,
   ClientToServerEvents
-> {
+>> {
   if (!socketInstance) {
+    const { io } = await import('socket.io-client')
     socketInstance = io('/?XTransformPort=3003', {
       transports: ['websocket', 'polling'],
       forceNew: false,
@@ -219,12 +220,12 @@ export function disconnectSocket(): void {
 /**
  * Join a community room.
  */
-export function joinCommunity(
+export async function joinCommunity(
   communityId: string,
   level: string,
   name: string
-): void {
-  const socket = getSocket()
+): Promise<void> {
+  const socket = await getSocket()
   if (socket.connected) {
     socket.emit('community:join', { communityId, level, name })
   }
@@ -233,8 +234,8 @@ export function joinCommunity(
 /**
  * Leave a community room.
  */
-export function leaveCommunity(communityId: string): void {
-  const socket = getSocket()
+export async function leaveCommunity(communityId: string): Promise<void> {
+  const socket = await getSocket()
   if (socket.connected) {
     socket.emit('community:leave', { communityId })
   }

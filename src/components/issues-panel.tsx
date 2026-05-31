@@ -81,9 +81,10 @@ interface IssuesPanelProps {
   autoOpenForm?: boolean
   onFormOpened?: () => void
   onIssueCreated?: () => void
+  defaultDistrict?: string
 }
 
-export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onFormOpened, onIssueCreated }: IssuesPanelProps) {
+export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onFormOpened, onIssueCreated, defaultDistrict }: IssuesPanelProps) {
   const [showForm, setShowForm] = useState(false)
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -139,11 +140,15 @@ export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onF
     } finally {
       setIsLoading(false)
     }
-  }, [filters, districtFilter, searchQuery])
+  }, [filters, districtFilter]) // Removed searchQuery — handled by debounce below
 
+  // Debounced search: only fetch after 300ms of inactivity
   useEffect(() => {
-    fetchIssues()
-  }, [fetchIssues])
+    const timer = setTimeout(() => {
+      fetchIssues()
+    }, searchQuery ? 300 : 0) // Instant for filter changes, debounced for search
+    return () => clearTimeout(timer)
+  }, [fetchIssues, searchQuery])
 
   // Auto-open issue form when triggered from map popup
   useEffect(() => {
@@ -458,7 +463,7 @@ export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onF
       </ScrollArea>
 
       {/* Issue Form Dialog */}
-      <IssueForm open={showForm} onOpenChange={setShowForm} onSubmitted={() => { fetchIssues(); onIssueCreated?.() }} />
+      <IssueForm open={showForm} onOpenChange={setShowForm} onSubmitted={() => { fetchIssues(); onIssueCreated?.() }} defaultDistrict={districtFilter} />
 
       {/* Detail Sheet */}
       <DetailSheet

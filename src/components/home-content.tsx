@@ -20,6 +20,7 @@ const EngagementPanel = dynamic(() => import('@/components/engagement-panel').th
 const DashboardPanel = dynamic(() => import('@/components/dashboard-panel').then(m => ({ default: m.DashboardPanel })), { ssr: false })
 const AuthDialogs = dynamic(() => import('@/components/auth-dialogs').then(m => ({ default: m.AuthDialogs })), { ssr: false })
 const MobileQuickReport = dynamic(() => import('@/components/mobile-quick-report').then(m => ({ default: m.MobileQuickReport })), { ssr: false })
+import { UgandaFlag } from '@/components/uganda-flag'
 import {
   Map,
   AlertTriangle,
@@ -215,30 +216,7 @@ function SearchResults({ query, onResultClick }: { query: string; onResultClick:
   )
 }
 
-// Uganda Coat of Arms Shield SVG
-function UgandaShield({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 44" className={className} fill="none">
-      {/* Shield shape */}
-      <path d="M20 2L4 8V22C4 32 20 42 20 42S36 32 36 22V8L20 2Z" fill="url(#shieldGrad)" stroke="#15803d" strokeWidth="1.5"/>
-      {/* Horizontal bands */}
-      <rect x="8" y="14" width="24" height="4" fill="#facc15" opacity="0.85" rx="0.5"/>
-      <rect x="8" y="20" width="24" height="4" fill="#dc2626" opacity="0.75" rx="0.5"/>
-      {/* Center emblem */}
-      <circle cx="20" cy="11" r="3.5" fill="#facc15" stroke="#a16207" strokeWidth="0.5"/>
-      <circle cx="20" cy="11" r="1.5" fill="#15803d"/>
-      {/* Bottom point accent */}
-      <path d="M16 28L20 38L24 28" fill="#facc15" opacity="0.5"/>
-      <defs>
-        <linearGradient id="shieldGrad" x1="4" y1="2" x2="36" y2="42">
-          <stop offset="0%" stopColor="#22c55e"/>
-          <stop offset="50%" stopColor="#16a34a"/>
-          <stop offset="100%" stopColor="#15803d"/>
-        </linearGradient>
-      </defs>
-    </svg>
-  )
-}
+// UgandaFlag component is imported from @/components/uganda-flag
 
 export default function HomeContent() {
   const [activeTab, setActiveTab] = useState<TabId>('map')
@@ -422,10 +400,7 @@ export default function HomeContent() {
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="relative flex h-7 w-7 md:h-9 md:w-9 items-center justify-center">
-              <UgandaShield className="h-7 w-7 md:h-9 md:w-9" />
-              <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 md:h-3 md:w-3 rounded-full bg-yellow-400 border-2 border-white shadow-sm" />
-            </div>
+            <UgandaFlag variant="badge" className="h-6 w-9 md:h-8 md:w-12 rounded shadow-sm" />
             <div className="hidden sm:block">
               <h1 className="text-sm font-bold leading-tight tracking-tight bg-gradient-to-r from-green-700 to-green-600 bg-clip-text text-transparent">
                 Uganda Community

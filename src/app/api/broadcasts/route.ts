@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateInput, createBroadcastSchema } from "@/lib/validations";
 
 function generateId(): string {
   return `cl${crypto.randomUUID().replace(/-/g, "").slice(0, 22)}`;
@@ -63,8 +64,35 @@ export async function GET(request: NextRequest) {
 
 // POST /api/broadcasts - Create a broadcast
 export async function POST(request: NextRequest) {
-  // Parse body once — request body can only be consumed once
-  let body: Record<string, unknown>;
+  // JWT Authentication
+  const userId = request.headers.get("x-user-id");
+  const userRole = request.headers.get("x-user-role");
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 }
+    );
+  }
+
+  // Role check: citizens cannot create broadcasts
+  if (userRole === "citizen") {
+    return NextResponse.json(
+      { error: "Insufficient permissions. Citizens cannot create broadcasts." },
+      { status: 403 }
+    );
+  }
+
+  const allowedRoles = ["lc1", "district_official", "district_admin", "moderator", "admin", "super_admin"];
+  if (!allowedRoles.includes(userRole ?? "")) {
+    return NextResponse.json(
+      { error: "Insufficient permissions to create broadcasts" },
+      { status: 403 }
+    );
+  }
+
+  // Parse body — request body can only be consumed once
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -74,43 +102,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Zod validation
+  const validation = validateInput(createBroadcastSchema, body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error },
+      { status: 400 }
+    );
+  }
+
   const {
     title,
     content,
     category,
     priority = "normal",
-    status = "draft",
     targetLevel,
     communityId,
     targetRadius,
-    channels = "in_app",
-    publishedById,
+    channels,
+    imageUrl,
     scheduledAt,
     expiresAt,
-  } = body as {
-    title?: string;
-    content?: string;
-    category?: string;
-    priority?: string;
-    status?: string;
-    targetLevel?: string;
-    communityId?: string;
-    targetRadius?: number;
-    channels?: string;
-    publishedById?: string;
-    scheduledAt?: string;
-    expiresAt?: string;
-  };
+  } = validation.data;
 
-  if (!title || !content || !category || !targetLevel || !publishedById) {
-    return NextResponse.json(
-      {
-        error:
-          "Title, content, category, targetLevel, and publishedById are required",
-      },
-      { status: 400 }
-    );
-  }
+  // Extract status from raw body (not part of schema, defaults to draft)
+  const rawBody = body as Record<string, unknown>;
+  const status = (rawBody.status as string) || "draft";
 
   // Try database first, fall back to mock response
   try {
@@ -124,8 +141,9 @@ export async function POST(request: NextRequest) {
         targetLevel,
         communityId,
         targetRadius,
-        channels,
-        publishedById,
+        channels: channels ?? "in_app",
+        imageUrl,
+        publishedById: userId,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
         publishedAt: status === "published" ? new Date() : undefined,
@@ -154,9 +172,9 @@ export async function POST(request: NextRequest) {
       targetLevel,
       communityId: communityId ?? null,
       targetRadius: targetRadius ?? null,
-      channels,
-      imageUrl: null,
-      publishedById,
+      channels: channels ?? "in_app",
+      imageUrl: imageUrl ?? null,
+      publishedById: userId,
       scheduledAt: scheduledAt ?? null,
       publishedAt: status === "published" ? now : null,
       expiresAt: expiresAt ?? null,
@@ -166,9 +184,9 @@ export async function POST(request: NextRequest) {
         ? { id: communityId, name: "Mock Community", adminType: "village" }
         : null,
       publishedBy: {
-        id: publishedById,
+        id: userId,
         name: "Mock User",
-        role: "citizen",
+        role: userRole ?? "citizen",
       },
     };
 

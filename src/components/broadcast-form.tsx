@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { useAuthStore } from '@/hooks/use-auth'
+import { authHeaders } from '@/lib/utils'
 import { DISTRICTS } from '@/lib/uganda-data'
 import type { BroadcastCategory, BroadcastPriority } from '@/lib/types'
 import { Megaphone } from 'lucide-react'
@@ -49,7 +51,7 @@ export function BroadcastForm({ open, onOpenChange, onSubmitted }: BroadcastForm
     try {
       const res = await fetch('/api/broadcasts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({
           title: title.trim(),
           content: content.trim(),
@@ -59,6 +61,12 @@ export function BroadcastForm({ open, onOpenChange, onSubmitted }: BroadcastForm
           communityId: communityId || null,
         }),
       })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        return
+      }
 
       if (!res.ok) throw new Error('Failed to create broadcast')
 

@@ -2,10 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { mockUsers } from "@/lib/mock-user-store";
+import { signToken } from "@/lib/auth";
+import { validateInput, loginSchema } from "@/lib/validations";
+import { rateLimitLogin, getClientIp } from "@/lib/rate-limit";
 
-// POST /api/users/login - Simple demo login
+// POST /api/users/login - Login with JWT token generation
 export async function POST(request: NextRequest) {
-  // Parse body once — request body can only be consumed once
+  // Rate limiting
+  const ip = getClientIp(request);
+  const rateResult = rateLimitLogin(ip);
+  if (!rateResult.allowed) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Please try again later.", retryAfter: Math.ceil((rateResult.resetAt - Date.now()) / 1000) },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateResult.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
+  // Parse body
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -16,22 +29,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { email, phone, password } = body as {
-    email?: string;
-    phone?: string;
-    password?: string;
-  };
-
-  if (!password || (!email && !phone)) {
+  // Validate input with Zod
+  const validation = validateInput(loginSchema, body);
+  if (!validation.success) {
     return NextResponse.json(
-      { error: "Password and either email or phone are required" },
+      { error: validation.error },
       { status: 400 }
     );
   }
 
+  const { email, phone, password } = validation.data;
+
   // Try database first, fall back to in-memory store
   try {
-    // Find user by email or phone
     const user = email
       ? await db.user.findUnique({ where: { email } })
       : await db.user.findUnique({ where: { phone: phone! } });
@@ -59,8 +69,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return user data (in production, you'd generate a JWT or session token)
-    return NextResponse.json({
+    // Generate JWT token
+    const token = await signToken({ userId: user.id, role: user.role });
+
+    // Set token as HTTP-only cookie and return user data with token
+    const response = NextResponse.json({
       data: {
         id: user.id,
         email: user.email,
@@ -73,13 +86,24 @@ export async function POST(request: NextRequest) {
         preferredLanguage: user.preferredLanguage,
         avatarUrl: user.avatarUrl,
       },
+      token,
     });
+
+    // Set HTTP-only cookie for subsequent requests
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error("Database error during login, falling back to mock store:", error);
 
     // Fallback: database unavailable — check in-memory mock users
     try {
-      // Search in-memory mock users
       let foundUser: ReturnType<typeof mockUsers.get> | null = null;
       for (const u of mockUsers.values()) {
         if (email && u.email === email) {
@@ -107,7 +131,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({
+      // Generate JWT token for mock user too
+      const token = await signToken({ userId: foundUser.id, role: foundUser.role });
+
+      const response = NextResponse.json({
         data: {
           id: foundUser.id,
           email: foundUser.email,
@@ -120,7 +147,18 @@ export async function POST(request: NextRequest) {
           preferredLanguage: foundUser.preferredLanguage,
           avatarUrl: foundUser.avatarUrl,
         },
+        token,
       });
+
+      response.cookies.set('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+
+      return response;
     } catch (fallbackError) {
       console.error("Mock store login also failed:", fallbackError);
       return NextResponse.json(

@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/status-badge'
 import { useToast } from '@/hooks/use-toast'
+import { useAuthStore } from '@/hooks/use-auth'
+import { authHeaders } from '@/lib/utils'
 import type { IssueCategory, IssueSeverity } from '@/lib/types'
 import { ISSUE_CATEGORY_META } from '@/lib/uganda-data'
 import {
@@ -86,7 +88,7 @@ export function AdminReviewPanel() {
     try {
       const res = await fetch('/api/moderation/review', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({
           action,
           targetType: 'issue',
@@ -95,6 +97,12 @@ export function AdminReviewPanel() {
           note: action === 'approve' ? 'Verified and published' : rejectReason || 'Does not meet community guidelines',
         }),
       })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        return
+      }
 
       if (!res.ok) throw new Error('Failed to review')
 

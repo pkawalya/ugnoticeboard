@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import type { User } from '@/lib/types'
 
 const AUTH_STORAGE_KEY = 'ugcnb_auth_user'
+const TOKEN_STORAGE_KEY = 'ugcnb_auth_token'
 
 function loadPersistedUser(): { user: User | null; isAuthenticated: boolean } {
   if (typeof window === 'undefined') return { user: null, isAuthenticated: false }
@@ -16,6 +17,7 @@ function loadPersistedUser(): { user: User | null; isAuthenticated: boolean } {
   } catch {
     // Corrupted data — clear it
     localStorage.removeItem(AUTH_STORAGE_KEY)
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
   }
   return { user: null, isAuthenticated: false }
 }
@@ -27,6 +29,20 @@ function persistUser(user: User | null) {
   } else {
     localStorage.removeItem(AUTH_STORAGE_KEY)
   }
+}
+
+function persistToken(token: string | null) {
+  if (typeof window === 'undefined') return
+  if (token) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token)
+  } else {
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+  }
+}
+
+export function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(TOKEN_STORAGE_KEY)
 }
 
 interface AuthState {
@@ -78,6 +94,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false
       }
       const userData = data.data || data.user
+      const token = data.token
+
+      // Store token securely
+      if (token) {
+        persistToken(token)
+      }
+
       const user: User = {
         ...userData,
         isAnonymous: false,
@@ -108,6 +131,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false
       }
       const userData = data.data || data.user
+      const token = data.token
+
+      // Store token securely
+      if (token) {
+        persistToken(token)
+      }
+
       const user: User = {
         ...userData,
         isAnonymous: false,
@@ -126,6 +156,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     persistUser(null)
+    persistToken(null)
     set({ user: null, isAuthenticated: false, error: null })
   },
 

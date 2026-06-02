@@ -1,30 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { validateInput, reviewModerationSchema } from '@/lib/validations'
 
 const prisma = new PrismaClient()
 
 // PATCH /api/moderation/review - Approve or reject content
 export async function PATCH(request: NextRequest) {
+  // JWT Authentication
+  const userId = request.headers.get('x-user-id')
+  const userRole = request.headers.get('x-user-role')
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
+  // Role check: only moderator, admin, super_admin can review
+  const allowedRoles = ['moderator', 'admin', 'super_admin']
+  if (!allowedRoles.includes(userRole ?? '')) {
+    return NextResponse.json({ error: 'Insufficient permissions. Only moderators and admins can review content.' }, { status: 403 })
+  }
+
   try {
     const body = await request.json()
-    const { action, targetType, targetId, reviewerId, reason, note } = body
 
-    if (!action || !targetType || !targetId) {
-      return NextResponse.json({ error: 'Missing required fields: action, targetType, targetId' }, { status: 400 })
+    // Zod validation
+    const validation = validateInput(reviewModerationSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    const validActions = ['approve', 'reject', 'escalate']
-    if (!validActions.includes(action)) {
-      return NextResponse.json({ error: 'Invalid action. Use: approve, reject, escalate' }, { status: 400 })
+    const { itemId, action, reason } = validation.data
+
+    // Extract targetType from body (not in schema, but required for routing)
+    const targetType = body.targetType as string | undefined
+    const note = body.note as string | undefined
+
+    if (!targetType) {
+      return NextResponse.json({ error: 'targetType is required' }, { status: 400 })
     }
 
     const now = new Date()
 
     if (targetType === 'issue') {
-      const newStatus = action === 'approve' ? 'submitted' : action === 'reject' ? 'rejected' : 'escalated'
+      const newStatus = action === 'approve' ? 'submitted' : 'rejected'
       
       const issue = await prisma.issue.update({
-        where: { id: targetId },
+        where: { id: itemId },
         data: {
           status: newStatus,
           ...(action === 'reject' && { resolutionNote: reason || 'Rejected by moderator' }),
@@ -34,10 +55,10 @@ export async function PATCH(request: NextRequest) {
       // Create status history entry
       await prisma.statusHistory.create({
         data: {
-          issueId: targetId,
+          issueId: itemId,
           fromStatus: 'pending_review',
           toStatus: newStatus,
-          changedById: reviewerId || null,
+          changedById: userId,
           note: note || reason || `Issue ${action}d by moderator`,
         },
       })
@@ -52,7 +73,7 @@ export async function PATCH(request: NextRequest) {
             type: 'issue_update',
             category: 'civic',
             priority: 'normal',
-            actionUrl: `/issues/${targetId}`,
+            actionUrl: `/issues/${itemId}`,
           },
         })
       }
@@ -60,25 +81,23 @@ export async function PATCH(request: NextRequest) {
       // Create audit log
       await prisma.auditLog.create({
         data: {
-          userId: reviewerId || null,
+          userId,
           action: `moderation_${action}`,
           targetType: 'issue',
-          targetId,
+          targetId: itemId,
           details: JSON.stringify({ fromStatus: 'pending_review', toStatus: newStatus, reason: reason || note }),
         },
       })
 
       // Update reporter's trust score
       if (issue.reportedById) {
-        const trustDelta = action === 'approve' ? 2 : action === 'reject' ? -5 : 0
-        if (trustDelta !== 0) {
-          const reporter = await prisma.user.findUnique({ where: { id: issue.reportedById } })
-          if (reporter) {
-            await prisma.user.update({
-              where: { id: issue.reportedById },
-              data: { trustScore: Math.max(0, Math.min(100, reporter.trustScore + trustDelta)) },
-            })
-          }
+        const trustDelta = action === 'approve' ? 2 : -5
+        const reporter = await prisma.user.findUnique({ where: { id: issue.reportedById } })
+        if (reporter) {
+          await prisma.user.update({
+            where: { id: issue.reportedById },
+            data: { trustScore: Math.max(0, Math.min(100, reporter.trustScore + trustDelta)) },
+          })
         }
       }
 
@@ -86,10 +105,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (targetType === 'broadcast') {
-      const newStatus = action === 'approve' ? 'published' : action === 'reject' ? 'archived' : 'draft'
+      const newStatus = action === 'approve' ? 'published' : 'archived'
       
       const broadcast = await prisma.broadcast.update({
-        where: { id: targetId },
+        where: { id: itemId },
         data: {
           status: newStatus,
           ...(action === 'approve' && { publishedAt: now }),
@@ -101,10 +120,10 @@ export async function PATCH(request: NextRequest) {
 
     if (targetType === 'report') {
       const report = await prisma.moderationReport.update({
-        where: { id: targetId },
+        where: { id: itemId },
         data: {
           status: action === 'approve' ? 'actioned' : 'dismissed',
-          reviewedById: reviewerId || null,
+          reviewedById: userId,
           reviewedAt: now,
           actionTaken: action === 'approve' ? reason || 'content_removed' : 'dismissed',
         },

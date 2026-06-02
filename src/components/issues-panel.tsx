@@ -24,6 +24,7 @@ import { ImageThumbnail, type GalleryImage } from '@/components/image-gallery'
 import { DetailSheet } from '@/components/detail-sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAuthStore } from '@/hooks/use-auth'
+import { authHeaders } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import type { Issue, IssueFilters, IssueCategory, IssueSeverity, IssueStatus } from '@/lib/types'
 import { ISSUE_CATEGORIES, DISTRICTS } from '@/lib/uganda-data'
@@ -168,9 +169,14 @@ export function IssuesPanel({ districtFilter, onDistrictClear, autoOpenForm, onF
     try {
       const res = await fetch(`/api/issues/${issueId}/votes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, direction: 'up' }),
       })
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        return
+      }
       if (res.ok) {
         setIssues(prev => prev.map(issue =>
           issue.id === issueId ? { ...issue, voteCount: issue.voteCount + 1 } : issue

@@ -2,14 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { mockUsers, generateId } from "@/lib/mock-user-store";
+import { signToken } from "@/lib/auth";
+import { validateInput, registerSchema } from "@/lib/validations";
+import { rateLimitRegister, getClientIp } from "@/lib/rate-limit";
 
 // Self-registration only allows "citizen" role.
 // Elevated roles must be assigned by an admin via a separate endpoint.
-const ALLOWED_SELF_REGISTER_ROLES = ["citizen"];
 
-// POST /api/users/register - Register a new user
+// POST /api/users/register - Register a new user with JWT
 export async function POST(request: NextRequest) {
-  // Parse body once — request body can only be consumed once
+  // Rate limiting
+  const ip = getClientIp(request);
+  const rateResult = rateLimitRegister(ip);
+  if (!rateResult.allowed) {
+    return NextResponse.json(
+      { error: "Too many registration attempts. Please try again later.", retryAfter: Math.ceil((rateResult.resetAt - Date.now()) / 1000) },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateResult.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
+  // Parse body
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -20,30 +32,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const {
-    email,
-    phone,
-    name,
-    password,
-    preferredLanguage = "en",
-  } = body as {
-    email?: string;
-    phone?: string;
-    name?: string;
-    password?: string;
-    role?: string;
-    preferredLanguage?: string;
-  };
-
-  // Always force "citizen" role on self-registration to prevent privilege escalation
-  const role = "citizen";
-
-  if (!password || (!email && !phone)) {
+  // Validate input with Zod
+  const validation = validateInput(registerSchema, body);
+  if (!validation.success) {
     return NextResponse.json(
-      { error: "Password and either email or phone are required" },
+      { error: validation.error },
       { status: 400 }
     );
   }
+
+  const { email, phone, name, password, preferredLanguage } = validation.data;
+
+  // Always force "citizen" role on self-registration to prevent privilege escalation
+  const role = "citizen";
 
   // Try database first, fall back to in-memory store
   try {
@@ -86,13 +87,32 @@ export async function POST(request: NextRequest) {
         name: true,
         role: true,
         isVerified: true,
+        isOfficial: true,
         trustScore: true,
         preferredLanguage: true,
+        avatarUrl: true,
         createdAt: true,
       },
     });
 
-    return NextResponse.json({ data: user }, { status: 201 });
+    // Generate JWT token — auto-login after registration
+    const token = await signToken({ userId: user.id, role: user.role });
+
+    const response = NextResponse.json(
+      { data: user, token },
+      { status: 201 }
+    );
+
+    // Set HTTP-only cookie
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error("Database error during registration, falling back to mock store:", error);
 
@@ -141,7 +161,10 @@ export async function POST(request: NextRequest) {
 
       mockUsers.set(id, mockUser);
 
-      return NextResponse.json(
+      // Generate JWT token for mock user too
+      const token = await signToken({ userId: id, role });
+
+      const response = NextResponse.json(
         {
           data: {
             id: mockUser.id,
@@ -150,13 +173,26 @@ export async function POST(request: NextRequest) {
             name: mockUser.name,
             role: mockUser.role,
             isVerified: mockUser.isVerified,
+            isOfficial: mockUser.isOfficial,
             trustScore: mockUser.trustScore,
             preferredLanguage: mockUser.preferredLanguage,
+            avatarUrl: mockUser.avatarUrl,
             createdAt: mockUser.createdAt,
           },
+          token,
         },
         { status: 201 }
       );
+
+      response.cookies.set('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+
+      return response;
     } catch (fallbackError) {
       console.error("Mock store registration also failed:", fallbackError);
       return NextResponse.json(

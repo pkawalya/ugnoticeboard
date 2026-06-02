@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { useAuthStore } from '@/hooks/use-auth'
+import { authHeaders } from '@/lib/utils'
 import {
   ISSUE_CATEGORIES,
   ISSUE_CATEGORY_META,
@@ -196,7 +198,7 @@ export function MobileQuickReport({
       const communityId = getCommunityId(selectedDistrict)
       const res = await fetch('/api/issues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || title.trim(),
@@ -207,6 +209,12 @@ export function MobileQuickReport({
           isAnonymous,
         }),
       })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        return
+      }
 
       if (!res.ok) {
         throw new Error('Failed to submit issue')

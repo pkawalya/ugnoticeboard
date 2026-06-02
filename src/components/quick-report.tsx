@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { useAuthStore } from '@/hooks/use-auth'
+import { authHeaders } from '@/lib/utils'
 import { ISSUE_CATEGORY_META, ISSUE_CATEGORIES, DISTRICTS } from '@/lib/uganda-data'
 import type { IssueCategory, IssueSeverity, Community } from '@/lib/types'
 import {
@@ -129,9 +130,15 @@ export function QuickReport({ open, onOpenChange, onSubmitted, initialDistrict }
 
         const res = await fetch('/api/issues', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders(),
           body: JSON.stringify(body),
         })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        return
+      }
 
       if (!res.ok) throw new Error('Failed to submit')
 

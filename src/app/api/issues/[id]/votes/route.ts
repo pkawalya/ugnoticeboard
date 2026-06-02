@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateInput, voteSchema } from "@/lib/validations";
+import { rateLimitVote } from "@/lib/rate-limit";
 
 // POST /api/issues/[id]/votes - Upvote/downvote an issue
 export async function POST(
@@ -8,15 +10,42 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { userId, direction } = body;
 
-    if (!userId || !direction) {
+    // ── Auth: extract userId from JWT middleware header ──
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
       return NextResponse.json(
-        { error: "userId and direction (up/down) are required" },
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // ── Rate limiting ──
+    const rateLimitResult = rateLimitVote(userId);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded. Try again later.",
+          remaining: rateLimitResult.remaining,
+          resetAt: rateLimitResult.resetAt,
+        },
+        { status: 429 }
+      );
+    }
+
+    // ── Input validation ──
+    const body = await request.json();
+    const validation = validateInput(voteSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
         { status: 400 }
       );
     }
+
+    const { voteType } = validation.data;
+    // Map schema enum to DB direction values
+    const direction = voteType === "upvote" ? "up" : "down";
 
     // Check if user already voted
     const existingVote = await db.vote.findUnique({
@@ -48,7 +77,7 @@ export async function POST(
       }
     }
 
-    // Create new vote
+    // Create new vote — userId comes from JWT, not from the request body
     const vote = await db.vote.create({
       data: { userId, issueId: id, direction },
     });

@@ -6,17 +6,18 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // JWT Authentication
+  const userId = request.headers.get("x-user-id");
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 }
+    );
+  }
+
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { userId } = body;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
 
     // Check if already signed
     const existing = await db.petitionSignature.findUnique({

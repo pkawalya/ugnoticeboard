@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateInput, createEvidenceSchema } from "@/lib/validations";
 
 // POST /api/issues/[id]/evidence - Upload evidence for an issue
 export async function POST(
@@ -8,22 +9,36 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { type, url, caption } = body;
 
-    if (!type || !url) {
+    // ── Auth: extract userId from JWT middleware header ──
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
       return NextResponse.json(
-        { error: "Type and url are required" },
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // ── Input validation ──
+    const body = await request.json();
+    const validation = validateInput(createEvidenceSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
         { status: 400 }
       );
     }
 
+    const { type, url, caption } = validation.data;
+
+    // uploadedById comes from JWT, not from the request body
     const evidence = await db.evidence.create({
       data: {
         issueId: id,
         type,
         url,
         caption,
+        uploadedById: userId,
       },
     });
 

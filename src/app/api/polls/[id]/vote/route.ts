@@ -1,22 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateInput, votePollSchema } from "@/lib/validations";
 
 // POST /api/polls/[id]/vote - Vote on a poll
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // JWT Authentication
+  const userId = request.headers.get("x-user-id");
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 }
+    );
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();
-    const { userId, pollOptionId } = body;
 
-    if (!userId || !pollOptionId) {
+    // Zod validation
+    const validation = validateInput(votePollSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "userId and pollOptionId are required" },
+        { error: validation.error },
         { status: 400 }
       );
     }
+
+    const { optionId } = validation.data;
 
     // Check if poll exists and is active
     const poll = await db.poll.findUnique({
@@ -53,14 +67,14 @@ export async function POST(
     // Create vote
     const response = await db.pollResponse.create({
       data: {
-        pollOptionId,
+        pollOptionId: optionId,
         userId,
       },
     });
 
     // Update vote count on the option
     await db.pollOption.update({
-      where: { id: pollOptionId },
+      where: { id: optionId },
       data: { voteCount: { increment: 1 } },
     });
 

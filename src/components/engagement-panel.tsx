@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAuthStore } from '@/hooks/use-auth'
+import { authHeaders } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import type { Petition, Poll } from '@/lib/types'
 import {
@@ -212,9 +213,26 @@ export function EngagementPanel({ districtFilter }: EngagementPanelProps) {
     try {
       const res = await fetch(`/api/petitions/${petitionId}/sign`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ userId }),
       })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        // Revert optimistic update
+        setPetitions(prev => prev.map(p =>
+          p.id === petitionId
+            ? { ...p, signatureCount: Math.max((p.signatureCount || 0) - 1, 0) }
+            : p
+        ))
+        setSignedPetitions(prev => {
+          const next = new Set(prev)
+          next.delete(petitionId)
+          return next
+        })
+        return
+      }
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -307,9 +325,33 @@ export function EngagementPanel({ districtFilter }: EngagementPanelProps) {
     try {
       const res = await fetch(`/api/polls/${pollId}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ userId, pollOptionId: selectedOptionId }),
       })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        // Revert optimistic update
+        setPolls(prev => prev.map(p => {
+          if (p.id !== pollId) return p
+          return {
+            ...p,
+            totalVotes: Math.max((p.totalVotes || 0) - 1, 0),
+            options: p.options.map(o =>
+              o.id === selectedOptionId
+                ? { ...o, voteCount: Math.max(o.voteCount - 1, 0) }
+                : o
+            ),
+          }
+        }))
+        setVotedPolls(prev => {
+          const next = new Set(prev)
+          next.delete(pollId)
+          return next
+        })
+        return
+      }
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -399,9 +441,26 @@ export function EngagementPanel({ districtFilter }: EngagementPanelProps) {
     try {
       const res = await fetch(`/api/meetings/${meetingId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ action: 'join', userId }),
       })
+
+      if (res.status === 401) {
+        toast({ title: 'Session expired', description: 'Session expired. Please log in again.', variant: 'destructive' })
+        useAuthStore.getState().logout()
+        // Revert optimistic update
+        setMeetings(prev => prev.map(m =>
+          m.id === meetingId
+            ? { ...m, attendanceCount: Math.max(m.attendanceCount - 1, 0) }
+            : m
+        ))
+        setJoinedEvents(prev => {
+          const next = new Set(prev)
+          next.delete(meetingId)
+          return next
+        })
+        return
+      }
 
       if (!res.ok) {
         // Revert

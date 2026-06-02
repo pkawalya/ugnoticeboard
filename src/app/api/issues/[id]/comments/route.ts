@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateInput, createCommentSchema } from "@/lib/validations";
+
+// Roles that are allowed to post official comments
+const OFFICIAL_ROLES = new Set([
+  "official",
+  "lc1",
+  "lc2",
+  "lc3",
+  "lc4",
+  "lc5",
+  "district_official",
+  "ministry_official",
+  "moderator",
+  "admin",
+  "super_admin",
+]);
 
 // GET /api/issues/[id]/comments - Get comments for an issue
 export async function GET(
@@ -34,16 +50,34 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { content, userId, isOfficial = false } = body;
 
-    if (!content || !userId) {
+    // ── Auth: extract userId and userRole from JWT middleware headers ──
+    const userId = request.headers.get("x-user-id");
+    const userRole = request.headers.get("x-user-role");
+
+    if (!userId) {
       return NextResponse.json(
-        { error: "Content and userId are required" },
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // ── Input validation ──
+    const body = await request.json();
+    const validation = validateInput(createCommentSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
         { status: 400 }
       );
     }
 
+    const { content, isOfficial: requestedOfficial } = validation.data;
+
+    // Only allow isOfficial=true if the user has an official-level role
+    const isOfficial = OFFICIAL_ROLES.has(userRole || "") ? requestedOfficial : false;
+
+    // userId comes from JWT, not from the request body
     const comment = await db.comment.create({
       data: {
         issueId: id,
